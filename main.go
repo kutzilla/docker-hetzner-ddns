@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
+	"time"
 )
 
 type Zones struct {
@@ -36,15 +38,26 @@ type Records struct {
 }
 
 type Record struct {
-	Id   string `json:"id"`
-	Type string `json:"type"`
-
+	Id       string `json:"id"`
+	Type     string `json:"type"`
 	Created  string `json:"created"`
 	Modified string `json:"modified"`
 	ZoneId   string `json:"zone_id"`
 	Name     string `json:"name"`
 	Value    string `json:"value"`
 	TTL      int    `json:"ttl"`
+}
+
+type RecordUpdateRequest struct {
+	Type   string `json:"type"`
+	ZoneId string `json:"zone_id"`
+	Name   string `json:"name"`
+	Value  string `json:"value"`
+	TTL    int    `json:"ttl"`
+}
+
+type RecordUpdateResponse struct {
+	Record Record `json:"record"`
 }
 
 type IPInfo struct {
@@ -61,7 +74,7 @@ type IPInfo struct {
 }
 
 const (
-	OrignRecordName = "@"
+	DnsRecordName = "@"
 
 	HttpsScheme = "https"
 
@@ -77,8 +90,13 @@ const (
 	HetznerRecordsPath           = "api/v1/records"
 	HetznerRecordsZoneQueryParam = "zone_id"
 	HetznerAuthApiTokenHeader    = "Auth-API-Token"
+	HetznerContentTypeHeader     = "Content-Type"
+
+	ContentTypeApplicationJson = "application/json"
 
 	IPInfoHost = "ipinfo.io"
+
+	DnsUpdateInterval = 10
 )
 
 func main() {
@@ -90,27 +108,38 @@ func main() {
 	validateArgs(zoneName, apiToken, recordType)
 
 	// Request all zones
-	fmt.Println("Requesting zone", zoneName)
-	zones := requestZones(apiToken)
+	fmt.Println("Requesting zone:", zoneName)
 
-	// Find zone by the given name
-	zone := findZoneByName(zones, zoneName)
-	fmt.Println("Found zone:", zone)
+	for {
+		if connectedToIpInfo() {
+			zones := requestZones(apiToken)
+			// Find zone by the given name
+			zone := findZoneByName(zones, zoneName)
 
-	fmt.Println("Requesting records for zone:", zone)
-	records := requestZoneRecords(zone, apiToken)
-	fmt.Println("Found records:", records)
+			records := requestZoneRecords(zone, apiToken)
+			dnsRecord := findDnsRecord(records, recordType)
+			ipInfo := requestIpInfo()
+			fmt.Println("Current public IP is:", ipInfo.IP)
 
-	fmt.Println("Searching origin record for type", recordType, "in", records)
-	originRecord := findOrginRecord(records, recordType)
-	fmt.Println("Found origin record", originRecord)
+			if dnsRecord.Value == ipInfo.IP {
+				fmt.Println("No DNS update required for", zone.Name, "to IP", dnsRecord.Value)
+			} else {
+				fmt.Println("DNS update required for", zone.Name, "with IP", dnsRecord.Value)
+				updatedDnsRecord := updateDnsRecord(dnsRecord, ipInfo, apiToken)
+				fmt.Println("Updated DNS for", zone.Name, "from IP", dnsRecord.Value, "to IP", updatedDnsRecord.Value)
+			}
+		} else {
+			fmt.Println("Unable to build connection to the internet")
+		}
 
-	fmt.Println("Requesting IPInfo")
-	ipInfo := requestIpInfo()
-	fmt.Println("Found IPInfo:", ipInfo)
+		time.Sleep(DnsUpdateInterval * time.Second)
+	}
 
-	fmt.Println("Updating", recordType, "record for zone", zone)
+}
 
+func connectedToIpInfo() bool {
+	_, err := http.Get(IPInfoHost)
+	return err != nil
 }
 
 func setArgs(zoneName *string, apiToken *string, recordType *string) {
@@ -138,16 +167,16 @@ func validateArgs(zoneName string, apiToken string, recordType string) {
 	}
 }
 
-func request(httpMethod string, url url.URL, headers map[string]string) []byte {
+func request(httpMethod string, url url.URL, headers map[string]string, body []byte) []byte {
 	// Create client
 	client := &http.Client{}
 
 	// Create request
-	req, err := http.NewRequest(httpMethod, url.String(), nil)
+	req, err := http.NewRequest(httpMethod, url.String(), bytes.NewBuffer(body))
 
 	if err != nil {
 		fmt.Println("Failure : ", err)
-		os.Exit(1)
+		return []byte{}
 	}
 
 	// Headers
@@ -160,6 +189,7 @@ func request(httpMethod string, url url.URL, headers map[string]string) []byte {
 
 	if err != nil {
 		fmt.Println("Failure : ", err)
+		return []byte{}
 	}
 
 	// Read Response Body
@@ -177,7 +207,7 @@ func requestZones(apiToken string) Zones {
 	}
 
 	// Request zones
-	respBody := request(http.MethodGet, requestUrl, map[string]string{"Auth-API-Token": apiToken})
+	respBody := request(http.MethodGet, requestUrl, map[string]string{HetznerAuthApiTokenHeader: apiToken}, []byte{})
 
 	// Unmarshal zones
 	var zones Zones
@@ -195,7 +225,7 @@ func requestZoneRecords(zone Zone, apiToken string) Records {
 		RawQuery: HetznerRecordsZoneQueryParam + "=" + zone.Id,
 	}
 
-	respBody := request(http.MethodGet, requestUrl, map[string]string{"Auth-API-Token": apiToken})
+	respBody := request(http.MethodGet, requestUrl, map[string]string{HetznerAuthApiTokenHeader: apiToken}, []byte{})
 
 	var records Records
 	json.Unmarshal(respBody, &records)
@@ -210,12 +240,39 @@ func requestIpInfo() IPInfo {
 		Host:   IPInfoHost,
 	}
 
-	respBody := request(http.MethodGet, requestUrl, map[string]string{})
+	respBody := request(http.MethodGet, requestUrl, map[string]string{}, []byte{})
 
 	var ipInfo IPInfo
 	json.Unmarshal(respBody, &ipInfo)
 
 	return ipInfo
+}
+
+func updateDnsRecord(dnsRecord Record, ipInfo IPInfo, apiToken string) Record {
+
+	requestUrl := url.URL{
+		Scheme: HttpsScheme,
+		Host:   HetznerHost,
+		Path:   HetznerRecordsPath + "/" + dnsRecord.Id,
+	}
+
+	// Creating new DNS record with IP from IpInfo
+	requestRecordUpdate := RecordUpdateRequest{
+		ZoneId: dnsRecord.ZoneId,
+		Type:   dnsRecord.Type,
+		Name:   dnsRecord.Name,
+		Value:  ipInfo.IP,
+		TTL:    dnsRecord.TTL,
+	}
+
+	requestBody, _ := json.Marshal(requestRecordUpdate)
+
+	respBody := request(http.MethodPut, requestUrl, map[string]string{HetznerAuthApiTokenHeader: apiToken, HetznerContentTypeHeader: ContentTypeApplicationJson}, requestBody)
+
+	var recordUpdateResponse RecordUpdateResponse
+	json.Unmarshal(respBody, &recordUpdateResponse)
+
+	return recordUpdateResponse.Record
 }
 
 func findZoneByName(zones Zones, zoneName string) Zone {
@@ -228,12 +285,12 @@ func findZoneByName(zones Zones, zoneName string) Zone {
 	return foundZone
 }
 
-func findOrginRecord(records Records, recordType string) Record {
-	var originRecord Record
+func findDnsRecord(records Records, recordType string) Record {
+	var dnsRecord Record
 	for _, v := range records.Record {
-		if v.Name == OrignRecordName && v.Type == recordType {
-			originRecord = v
+		if v.Name == DnsRecordName && v.Type == recordType {
+			dnsRecord = v
 		}
 	}
-	return originRecord
+	return dnsRecord
 }
