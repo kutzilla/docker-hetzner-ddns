@@ -1,7 +1,10 @@
 language: go
 
 go:
-- 1.x
-- "1.17"
-- 1.17.1
-- master
+  - 1.x
+  - "1.17"
+  - 1.17.1
+  - master
+
+script:
+  - go run main.go
