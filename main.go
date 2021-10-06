@@ -61,29 +61,33 @@ type IPInfo struct {
 }
 
 const (
-	OrignRecordName              = "@"
-	IPv4RecordType               = "A"
-	IPv6RecordType               = "AAAA"
-	HttpsScheme                  = "https"
-	HetznerAuthApiTokenHeader    = "Auth-API-Token"
+	OrignRecordName = "@"
+
+	HttpsScheme = "https"
+
+	EnvZoneName   = "ZONE_NAME"
+	EnvApiToken   = "API_TOKEN"
+	EnvRecordType = "RECORD_TYPE"
+
+	IPv4RecordType = "A"
+	IPv6RecordType = "AAAA"
+
 	HetznerHost                  = "dns.hetzner.com"
 	HetznerZonesPath             = "api/v1/zones"
 	HetznerRecordsPath           = "api/v1/records"
 	HetznerRecordsZoneQueryParam = "zone_id"
-	IPInfoHost                   = "ipinfo.io"
+	HetznerAuthApiTokenHeader    = "Auth-API-Token"
+
+	IPInfoHost = "ipinfo.io"
 )
 
 func main() {
+	// Set args by cli values or env variables
+	var zoneName, apiToken, recordType string
+	setArgs(&zoneName, &apiToken, &recordType)
 
-	zoneName := os.Args[1]
-	apiToken := os.Args[2]
-	recordType := os.Args[3]
-
-	// Validating given record type
-	if recordType != IPv4RecordType && recordType != IPv6RecordType {
-		fmt.Println("Given record type does not match", IPv4RecordType, "or", IPv6RecordType)
-		os.Exit(0)
-	}
+	// Validate args
+	validateArgs(zoneName, apiToken, recordType)
 
 	// Request all zones
 	fmt.Println("Requesting zone", zoneName)
@@ -109,6 +113,31 @@ func main() {
 
 }
 
+func setArgs(zoneName *string, apiToken *string, recordType *string) {
+	if len(os.Args) > 3 {
+		*zoneName = os.Args[1]
+		*apiToken = os.Args[2]
+		*recordType = os.Args[3]
+	} else {
+		*zoneName = os.Getenv(EnvZoneName)
+		*apiToken = os.Getenv(EnvApiToken)
+		*recordType = os.Getenv(EnvRecordType)
+	}
+}
+
+func validateArgs(zoneName string, apiToken string, recordType string) {
+	if zoneName == "" || apiToken == "" || recordType == "" {
+		fmt.Println("You need to set the environment variables", EnvZoneName, ",", EnvApiToken, "and", EnvRecordType, "or provide them as args in the shown order")
+		os.Exit(1)
+	}
+
+	// Validating given record type
+	if recordType != IPv4RecordType && recordType != IPv6RecordType {
+		fmt.Println("Given record type does not match", IPv4RecordType, "or", IPv6RecordType)
+		os.Exit(1)
+	}
+}
+
 func request(httpMethod string, url url.URL, headers map[string]string) []byte {
 	// Create client
 	client := &http.Client{}
@@ -118,6 +147,7 @@ func request(httpMethod string, url url.URL, headers map[string]string) []byte {
 
 	if err != nil {
 		fmt.Println("Failure : ", err)
+		os.Exit(1)
 	}
 
 	// Headers
