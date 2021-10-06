@@ -7,38 +7,31 @@ This Docker image will allow you to use the [Hetzner DNS Service](https://www.he
 
 ## Usage
 
+Quick Setup:
 
-### Docker
-
-You can run the Docker image with the following command:
-
-```
-docker run kutzilla/hetzner-ddns {ZONE_NAME} {HETZNER_API_TOKEN} {ZONE_RECORD_TYPE}
-```
-
-If you prefer environment variables, you can use this command: 
-
-```
-docker run -e ZONE_NAME=example.com -e HETZNER_API_TOKEN=my-secret-api-token -e ZONE_RECORD_TYPE=A kutzilla/hetzner-ddns
+```shell
+docker run \
+-e ZONE_NAME=example.com \ 
+-e HETZNER_API_TOKEN=my-secret-api-token \
+-e ZONE_RECORD_TYPE=A \
+kutzilla/hetzner-ddns
 ```
 
-### Go
 
-You also can can run the Go implementation with the following command:
+If you prefer command-line arguments, you can use this command: 
 
+```shell
+docker run kutzilla/hetzner-ddns example.com my-secret-api-token A
 ```
-go run main.go {ZONE_NAME} {HETZNER_API_TOKEN} {ZONE_RECORD_TYPE}
-```
 
-If you prefer environment variables, you can use this command: 
+## Parameters
 
-```
-set ZONE_NAME=example.com
-set HETZNER_API_TOKEN=my-secret-api-token
-set ZONE_RECORD_TYPE=A // or AAAA
 
-go run main.go
-```
+* `-e ZONE_NAME` - The DNS zone that DDNS updates should be applied to. **Required**
+* `-e API_TOKEN` - Your Hetzner  API token. **Required**
+* `-e RECORD_TYPE` - The record type of your zone. If your zone uses an IPv4 address use `A`. Use `AAAA` if it uses an IPv6 address. **required**
+* `--restart=always` - ensure the container restarts automatically after host reboot.
+
 
 
 # Build
