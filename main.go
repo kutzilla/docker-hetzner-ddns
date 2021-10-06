@@ -47,11 +47,43 @@ type Record struct {
 	TTL      int    `json:"ttl"`
 }
 
+type IPInfo struct {
+	IP       string `json:"ip"`
+	Hostname string `json:"hostname"`
+	City     string `json:"city"`
+	Region   string `json:"region"`
+	Country  string `json:"country"`
+	Loc      string `json:"loc"`
+	Org      string `json:"org"`
+	Postal   string `json:"postal"`
+	Timezone string `json:"timezone"`
+	Readme   string `json:"readme"`
+}
+
+const (
+	OrignRecordName              = "@"
+	IPv4RecordType               = "A"
+	IPv6RecordType               = "AAAA"
+	HttpsScheme                  = "https"
+	HetznerAuthApiTokenHeader    = "Auth-API-Token"
+	HetznerHost                  = "dns.hetzner.com"
+	HetznerZonesPath             = "api/v1/zones"
+	HetznerRecordsPath           = "api/v1/records"
+	HetznerRecordsZoneQueryParam = "zone_id"
+	IPInfoHost                   = "ipinfo.io"
+)
+
 func main() {
 
 	zoneName := os.Args[1]
 	apiToken := os.Args[2]
 	recordType := os.Args[3]
+
+	// Validating given record type
+	if recordType != IPv4RecordType && recordType != IPv6RecordType {
+		fmt.Println("Given record type does not match", IPv4RecordType, "or", IPv6RecordType)
+		os.Exit(0)
+	}
 
 	// Request all zones
 	fmt.Println("Requesting zone", zoneName)
@@ -65,11 +97,19 @@ func main() {
 	records := requestZoneRecords(zone, apiToken)
 	fmt.Println("Found records:", records)
 
+	fmt.Println("Searching origin record for type", recordType, "in", records)
+	originRecord := findOrginRecord(records, recordType)
+	fmt.Println("Found origin record", originRecord)
+
+	fmt.Println("Requesting IPInfo")
+	ipInfo := requestIpInfo()
+	fmt.Println("Found IPInfo:", ipInfo)
+
 	fmt.Println("Updating", recordType, "record for zone", zone)
 
 }
 
-func request(httpMethod string, url url.URL, apiToken string) []byte {
+func request(httpMethod string, url url.URL, headers map[string]string) []byte {
 	// Create client
 	client := &http.Client{}
 
@@ -81,7 +121,9 @@ func request(httpMethod string, url url.URL, apiToken string) []byte {
 	}
 
 	// Headers
-	req.Header.Add("Auth-API-Token", apiToken)
+	for key, element := range headers {
+		req.Header.Add(key, element)
+	}
 
 	// Fetch Request
 	resp, err := client.Do(req)
@@ -99,13 +141,13 @@ func request(httpMethod string, url url.URL, apiToken string) []byte {
 func requestZones(apiToken string) Zones {
 
 	requestUrl := url.URL{
-		Scheme: "https",
-		Host:   "dns.hetzner.com",
-		Path:   "api/v1/zones",
+		Scheme: HttpsScheme,
+		Host:   HetznerHost,
+		Path:   HetznerZonesPath,
 	}
 
 	// Request zones
-	respBody := request("GET", requestUrl, apiToken)
+	respBody := request(http.MethodGet, requestUrl, map[string]string{"Auth-API-Token": apiToken})
 
 	// Unmarshal zones
 	var zones Zones
@@ -117,18 +159,33 @@ func requestZones(apiToken string) Zones {
 func requestZoneRecords(zone Zone, apiToken string) Records {
 
 	requestUrl := url.URL{
-		Scheme:   "https",
-		Host:     "dns.hetzner.com",
-		Path:     "api/v1/records",
-		RawQuery: "zone_id=" + zone.Id,
+		Scheme:   HttpsScheme,
+		Host:     HetznerHost,
+		Path:     HetznerRecordsPath,
+		RawQuery: HetznerRecordsZoneQueryParam + "=" + zone.Id,
 	}
 
-	respBody := request("GET", requestUrl, apiToken)
+	respBody := request(http.MethodGet, requestUrl, map[string]string{"Auth-API-Token": apiToken})
 
 	var records Records
 	json.Unmarshal(respBody, &records)
 
 	return records
+}
+
+func requestIpInfo() IPInfo {
+
+	requestUrl := url.URL{
+		Scheme: HttpsScheme,
+		Host:   IPInfoHost,
+	}
+
+	respBody := request(http.MethodGet, requestUrl, map[string]string{})
+
+	var ipInfo IPInfo
+	json.Unmarshal(respBody, &ipInfo)
+
+	return ipInfo
 }
 
 func findZoneByName(zones Zones, zoneName string) Zone {
@@ -139,4 +196,14 @@ func findZoneByName(zones Zones, zoneName string) Zone {
 		}
 	}
 	return foundZone
+}
+
+func findOrginRecord(records Records, recordType string) Record {
+	var originRecord Record
+	for _, v := range records.Record {
+		if v.Name == OrignRecordName && v.Type == recordType {
+			originRecord = v
+		}
+	}
+	return originRecord
 }
