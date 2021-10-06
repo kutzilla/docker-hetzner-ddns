@@ -58,7 +58,7 @@ func main() {
 	zones := requestZones(apiToken)
 
 	// Find zone by the given name
-	zone := findZoneInZones(zoneName, zones)
+	zone := findZoneByName(zones, zoneName)
 	fmt.Println("Found zone:", zone)
 
 	fmt.Println("Requesting records for zone:", zone)
@@ -114,17 +114,6 @@ func requestZones(apiToken string) Zones {
 	return zones
 }
 
-func findZoneInZones(zoneName string, zones Zones) Zone {
-	var foundZone Zone
-	for _, v := range zones.Zone {
-		if v.Name == zoneName {
-			foundZone = v
-			return foundZone
-		}
-	}
-	return foundZone
-}
-
 func requestZoneRecords(zone Zone, apiToken string) Records {
 
 	requestUrl := url.URL{
@@ -140,4 +129,14 @@ func requestZoneRecords(zone Zone, apiToken string) Records {
 	json.Unmarshal(respBody, &records)
 
 	return records
+}
+
+func findZoneByName(zones Zones, zoneName string) Zone {
+	var foundZone Zone
+	for _, v := range zones.Zone {
+		if v.Name == zoneName {
+			foundZone = v
+		}
+	}
+	return foundZone
 }
