@@ -8,24 +8,43 @@ import (
 	"os"
 )
 
+type Zones struct {
+	Zone []Zone `json:"zones"`
+}
+
 type Zone struct {
-	id   string `json:"id"`
-	name string `json:"name"`
+	Id   string `json:"id"`
+	Name string `json:"name"`
 }
 
 func main() {
 
 	zoneName := os.Args[1]
 	apiToken := os.Args[2]
+	recordType := os.Args[3]
 
-	fmt.Println("Finding:", zoneName)
+	fmt.Println("Searching:", zoneName)
 
 	zone := findZoneByName(zoneName, apiToken)
-	fmt.Println("Found:", zone)
+
+	fmt.Println("Updating", recordType, "record for zone", zone.Name)
+
 }
 
 func findZoneByName(zoneName string, apiToken string) Zone {
 
+	// Request zones by API Token
+	zones := requestZones(apiToken)
+
+	// Find zone instance for given zone name
+	zone := findZoneInZones(zoneName, zones)
+
+	fmt.Println("Found zone for", zoneName, "with id", zone.Id)
+
+	return zone
+}
+
+func requestZones(apiToken string) Zones {
 	// Create client
 	client := &http.Client{}
 
@@ -44,15 +63,21 @@ func findZoneByName(zoneName string, apiToken string) Zone {
 
 	// Read Response Body
 	respBody, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println("Response body:", string(respBody))
 
-	var zones []Zone
+	// Unmarshal zones
+	var zones Zones
 	json.Unmarshal(respBody, &zones)
-	fmt.Println("Zones:", zones)
 
-	if len(zones) > 0 {
-		return zones[0]
-	} else {
-		return Zone{}
+	return zones
+}
+
+func findZoneInZones(zoneName string, zones Zones) Zone {
+	var foundZone Zone
+	for _, v := range zones.Zone {
+		if v.Name == zoneName {
+			foundZone = v
+			return foundZone
+		}
 	}
+	return foundZone
 }
