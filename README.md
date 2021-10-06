@@ -1,4 +1,4 @@
-[![Build Status](https://app.travis-ci.com/kutzilla/docker-hetzner-ddns.svg?branch=master)](https://app.travis-ci.com/kutzilla/docker-hetzner-ddns)
+[![Build Status](https://app.travis-ci.com/kutzilla/docker-hetzner-ddns.svg?branch=master)](https://app.travis-ci.com/kutzilla/docker-hetzner-ddns) [![Docker Pulls](https://img.shields.io/docker/pulls/kutzilla/hetzner-ddns.svg)](https://hub.docker.com/r/kutzilla/hetzner-ddns)
 
 # Docker Hetzner DDNS
 
