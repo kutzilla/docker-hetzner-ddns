@@ -7,4 +7,4 @@ go:
   - master
 
 script:
-  - go run main.go
+  - go build main.go
