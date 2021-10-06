@@ -48,12 +48,16 @@ type Record struct {
 	TTL      int    `json:"ttl"`
 }
 
-type RecordUpdate struct {
+type RecordUpdateRequest struct {
 	Type   string `json:"type"`
 	ZoneId string `json:"zone_id"`
 	Name   string `json:"name"`
 	Value  string `json:"value"`
 	TTL    int    `json:"ttl"`
+}
+
+type RecordUpdateResponse struct {
+	Record Record `json:"record"`
 }
 
 type IPInfo struct {
@@ -242,7 +246,7 @@ func updateDnsRecord(dnsRecord Record, ipInfo IPInfo, apiToken string) Record {
 	}
 
 	// Creating new DNS record with IP from IpInfo
-	requestRecordUpdate := RecordUpdate{
+	requestRecordUpdate := RecordUpdateRequest{
 		ZoneId: dnsRecord.ZoneId,
 		Type:   dnsRecord.Type,
 		Name:   dnsRecord.Name,
@@ -258,10 +262,10 @@ func updateDnsRecord(dnsRecord Record, ipInfo IPInfo, apiToken string) Record {
 
 	fmt.Println("Response Body", string(respBody))
 
-	var updatedDnsRecord Record
-	json.Unmarshal(respBody, &updatedDnsRecord)
+	var recordUpdateResponse RecordUpdateResponse
+	json.Unmarshal(respBody, &recordUpdateResponse)
 
-	return updatedDnsRecord
+	return recordUpdateResponse.Record
 }
 
 func findZoneByName(zones Zones, zoneName string) Zone {
