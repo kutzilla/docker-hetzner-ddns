@@ -96,7 +96,7 @@ const (
 
 	IPInfoHost = "ipinfo.io"
 
-	DnsUpdateInterval = 300
+	DnsUpdateInterval = 10
 )
 
 func main() {
@@ -109,28 +109,37 @@ func main() {
 
 	// Request all zones
 	fmt.Println("Requesting zone:", zoneName)
-	zones := requestZones(apiToken)
-
-	// Find zone by the given name
-	zone := findZoneByName(zones, zoneName)
 
 	for {
-		records := requestZoneRecords(zone, apiToken)
-		dnsRecord := findDnsRecord(records, recordType)
-		ipInfo := requestIpInfo()
-		fmt.Println("Current public IP is:", ipInfo.IP)
+		if connectedToIpInfo() {
+			zones := requestZones(apiToken)
+			// Find zone by the given name
+			zone := findZoneByName(zones, zoneName)
 
-		if dnsRecord.Value == ipInfo.IP {
-			fmt.Println("No DNS update required for", zone.Name, "to IP", dnsRecord.Value)
+			records := requestZoneRecords(zone, apiToken)
+			dnsRecord := findDnsRecord(records, recordType)
+			ipInfo := requestIpInfo()
+			fmt.Println("Current public IP is:", ipInfo.IP)
+
+			if dnsRecord.Value == ipInfo.IP {
+				fmt.Println("No DNS update required for", zone.Name, "to IP", dnsRecord.Value)
+			} else {
+				fmt.Println("DNS update required for", zone.Name, "with IP", dnsRecord.Value)
+				updatedDnsRecord := updateDnsRecord(dnsRecord, ipInfo, apiToken)
+				fmt.Println("Updated DNS for", zone.Name, "from IP", dnsRecord.Value, "to IP", updatedDnsRecord.Value)
+			}
 		} else {
-			fmt.Println("DNS update required for", zone.Name, "with IP", dnsRecord.Value)
-			updatedDnsRecord := updateDnsRecord(dnsRecord, ipInfo, apiToken)
-			fmt.Println("Updated DNS for", zone.Name, "from IP", dnsRecord.Value, "to IP", updatedDnsRecord.Value)
+			fmt.Println("Unable to build connection to the internet")
 		}
 
 		time.Sleep(DnsUpdateInterval * time.Second)
 	}
 
+}
+
+func connectedToIpInfo() bool {
+	_, err := http.Get(IPInfoHost)
+	return err != nil
 }
 
 func setArgs(zoneName *string, apiToken *string, recordType *string) {
@@ -167,6 +176,7 @@ func request(httpMethod string, url url.URL, headers map[string]string, body []b
 
 	if err != nil {
 		fmt.Println("Failure : ", err)
+		return []byte{}
 	}
 
 	// Headers
@@ -179,6 +189,7 @@ func request(httpMethod string, url url.URL, headers map[string]string, body []b
 
 	if err != nil {
 		fmt.Println("Failure : ", err)
+		return []byte{}
 	}
 
 	// Read Response Body
@@ -256,11 +267,7 @@ func updateDnsRecord(dnsRecord Record, ipInfo IPInfo, apiToken string) Record {
 
 	requestBody, _ := json.Marshal(requestRecordUpdate)
 
-	fmt.Println("Request Body:", string(requestBody))
-
 	respBody := request(http.MethodPut, requestUrl, map[string]string{HetznerAuthApiTokenHeader: apiToken, HetznerContentTypeHeader: ContentTypeApplicationJson}, requestBody)
-
-	fmt.Println("Response Body", string(respBody))
 
 	var recordUpdateResponse RecordUpdateResponse
 	json.Unmarshal(respBody, &recordUpdateResponse)
