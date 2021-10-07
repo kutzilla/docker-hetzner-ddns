@@ -96,7 +96,7 @@ const (
 
 	IPInfoHost = "ipinfo.io"
 
-	DnsUpdateInterval = 10
+	DnsUpdateInterval = 5
 )
 
 func main() {
@@ -111,7 +111,7 @@ func main() {
 	fmt.Println("Requesting zone:", zoneName)
 
 	for {
-		if connectedToIpInfo() {
+		if isOnline() {
 			zones := requestZones(apiToken)
 			// Find zone by the given name
 			zone := findZoneByName(zones, zoneName)
@@ -122,11 +122,14 @@ func main() {
 			fmt.Println("Current public IP is:", ipInfo.IP)
 
 			if dnsRecord.Value == ipInfo.IP {
-				fmt.Println("No DNS update required for", zone.Name, "to IP", dnsRecord.Value)
+				fmt.Println("No DNS update required for",
+					zone.Name, "to IP", dnsRecord.Value)
 			} else {
-				fmt.Println("DNS update required for", zone.Name, "with IP", dnsRecord.Value)
+				fmt.Println("DNS update required for", zone.Name,
+					"with IP", dnsRecord.Value)
 				updatedDnsRecord := updateDnsRecord(dnsRecord, ipInfo, apiToken)
-				fmt.Println("Updated DNS for", zone.Name, "from IP", dnsRecord.Value, "to IP", updatedDnsRecord.Value)
+				fmt.Println("Updated DNS for", zone.Name, "from IP",
+					dnsRecord.Value, "to IP", updatedDnsRecord.Value)
 			}
 		} else {
 			fmt.Println("Unable to build connection to the internet")
@@ -137,9 +140,14 @@ func main() {
 
 }
 
-func connectedToIpInfo() bool {
-	_, err := http.Get(IPInfoHost)
-	return err != nil
+func isOnline() bool {
+	ipInfoUrl := url.URL{
+		Scheme: HttpsScheme,
+		Host:   IPInfoHost,
+	}
+
+	_, err := http.Get(ipInfoUrl.String())
+	return err == nil
 }
 
 func setArgs(zoneName *string, apiToken *string, recordType *string) {
@@ -156,13 +164,16 @@ func setArgs(zoneName *string, apiToken *string, recordType *string) {
 
 func validateArgs(zoneName string, apiToken string, recordType string) {
 	if zoneName == "" || apiToken == "" || recordType == "" {
-		fmt.Println("You need to set the environment variables", EnvZoneName, ",", EnvApiToken, "and", EnvRecordType, "or provide them as args in the shown order")
+		fmt.Println("You need to set the environment variables",
+			EnvZoneName, ",", EnvApiToken, "and", EnvRecordType,
+			"or provide them as args in the shown order")
 		os.Exit(1)
 	}
 
 	// Validating given record type
 	if recordType != IPv4RecordType && recordType != IPv6RecordType {
-		fmt.Println("Given record type does not match", IPv4RecordType, "or", IPv6RecordType)
+		fmt.Println("Given record type does not match",
+			IPv4RecordType, "or", IPv6RecordType)
 		os.Exit(1)
 	}
 }
@@ -207,7 +218,8 @@ func requestZones(apiToken string) Zones {
 	}
 
 	// Request zones
-	respBody := request(http.MethodGet, requestUrl, map[string]string{HetznerAuthApiTokenHeader: apiToken}, []byte{})
+	respBody := request(http.MethodGet, requestUrl,
+		map[string]string{HetznerAuthApiTokenHeader: apiToken}, []byte{})
 
 	// Unmarshal zones
 	var zones Zones
@@ -225,7 +237,8 @@ func requestZoneRecords(zone Zone, apiToken string) Records {
 		RawQuery: HetznerRecordsZoneQueryParam + "=" + zone.Id,
 	}
 
-	respBody := request(http.MethodGet, requestUrl, map[string]string{HetznerAuthApiTokenHeader: apiToken}, []byte{})
+	respBody := request(http.MethodGet, requestUrl,
+		map[string]string{HetznerAuthApiTokenHeader: apiToken}, []byte{})
 
 	var records Records
 	json.Unmarshal(respBody, &records)
@@ -240,7 +253,8 @@ func requestIpInfo() IPInfo {
 		Host:   IPInfoHost,
 	}
 
-	respBody := request(http.MethodGet, requestUrl, map[string]string{}, []byte{})
+	respBody := request(http.MethodGet, requestUrl,
+		map[string]string{}, []byte{})
 
 	var ipInfo IPInfo
 	json.Unmarshal(respBody, &ipInfo)
