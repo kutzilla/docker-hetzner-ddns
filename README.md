@@ -4,6 +4,11 @@
 
 This Docker image will allow you to use the [Hetzner DNS Service](https://www.hetzner.com/dns-console) as a Dynamic DNS Provider ([DDNS](https://en.wikipedia.org/wiki/Dynamic_DNS)).
 
+## How does it work?
+
+The Go script inside this Docker Image periodically checks the DNS record with the Hetzner DNS API. It also checks the current public IP of the network, the container is running on. If the DNS record does not match the current public IP, it will update the record. Therefore your DNS records updates dynamically to the public IP.
+
+
 
 ## Usage
 
@@ -31,7 +36,6 @@ docker run kutzilla/hetzner-ddns example.com my-secret-api-token A
 * `-e API_TOKEN` - Your Hetzner  API token. **Required**
 * `-e RECORD_TYPE` - The record type of your zone. If your zone uses an IPv4 address use `A`. Use `AAAA` if it uses an IPv6 address. **Required**
 * `--restart=always` - ensure the container restarts automatically after host reboot.
-
 
 
 ## Build
