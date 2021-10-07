@@ -6,7 +6,7 @@ This Docker image will allow you to use the [Hetzner DNS Service](https://www.he
 
 ## How does it work?
 
-The Go script inside this Docker Image periodically checks the DNS record with the Hetzner DNS API. It also checks the current public IP of the network, the container is running on. If the DNS record does not match the current public IP, it will update the record. Therefore your DNS records updates dynamically to the public IP.
+The Go script inside this Docker Image periodically checks the DNS record with the Hetzner DNS API. It also checks the current public IP of the network, the container is running on. If the DNS record does not match the current public IP, it will update the record. Therefore your DNS record updates dynamically to the public IP.
 
 
 
