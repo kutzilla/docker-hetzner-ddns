@@ -8,7 +8,10 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"time"
+	"os/signal"
+	"sync"
+
+	"github.com/robfig/cron/v3"
 )
 
 type Zones struct {
@@ -96,7 +99,7 @@ const (
 
 	IPInfoHost = "ipinfo.io"
 
-	DnsUpdateInterval = 5
+	DefaultDnsUpdateCronExpression = "*/5 * * * *"
 )
 
 func main() {
@@ -107,15 +110,43 @@ func main() {
 	// Validate args
 	validateArgs(zoneName, apiToken, recordType)
 
-	// Request all zones
+	// Request zones
+	zones := requestZones(apiToken)
+	// Find zone by the given name
 	fmt.Println("Requesting zone:", zoneName)
+	zone := findZoneByName(zones, zoneName)
 
-	for {
+	// Create the Hetzner DynDNS Cron Job
+	hetznerDynDnsJob := createHetznerDynDnsCronJob(zone, apiToken, recordType)
+
+	// Start the Cron Job with the expression
+	startCronScheduler(DefaultDnsUpdateCronExpression, hetznerDynDnsJob)
+}
+
+func startCronScheduler(cronExpression string, cronJob cron.FuncJob) {
+	waitUntilStopped := func() {
+		var endWaiter sync.WaitGroup
+		endWaiter.Add(1)
+		signalChannel := make(chan os.Signal, 1)
+		signal.Notify(signalChannel, os.Interrupt)
+		go func() {
+			<-signalChannel
+			endWaiter.Done()
+		}()
+		endWaiter.Wait()
+	}
+	cron := cron.New()
+	cron.AddJob(cronExpression, cronJob)
+	cron.Start()
+	fmt.Println("Started DynDNS")
+	waitUntilStopped()
+	fmt.Println("Stopped DynDNS")
+	cron.Stop()
+}
+
+func createHetznerDynDnsCronJob(zone Zone, apiToken string, recordType string) cron.FuncJob {
+	return cron.FuncJob(func() {
 		if isOnline() {
-			zones := requestZones(apiToken)
-			// Find zone by the given name
-			zone := findZoneByName(zones, zoneName)
-
 			records := requestZoneRecords(zone, apiToken)
 			dnsRecord := findDnsRecord(records, recordType)
 			ipInfo := requestIpInfo()
@@ -131,13 +162,8 @@ func main() {
 				fmt.Println("Updated DNS for", zone.Name, "from IP",
 					dnsRecord.Value, "to IP", updatedDnsRecord.Value)
 			}
-		} else {
-			fmt.Println("Unable to build connection to the internet")
 		}
-
-		time.Sleep(DnsUpdateInterval * time.Second)
-	}
-
+	})
 }
 
 func isOnline() bool {
