@@ -8,7 +8,10 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"time"
+	"os/signal"
+	"sync"
+
+	"github.com/robfig/cron/v3"
 )
 
 type Zones struct {
@@ -60,17 +63,8 @@ type RecordUpdateResponse struct {
 	Record Record `json:"record"`
 }
 
-type IPInfo struct {
-	IP       string `json:"ip"`
-	Hostname string `json:"hostname"`
-	City     string `json:"city"`
-	Region   string `json:"region"`
-	Country  string `json:"country"`
-	Loc      string `json:"loc"`
-	Org      string `json:"org"`
-	Postal   string `json:"postal"`
-	Timezone string `json:"timezone"`
-	Readme   string `json:"readme"`
+type Ipify struct {
+	IP string `json:"ip"`
 }
 
 const (
@@ -94,9 +88,11 @@ const (
 
 	ContentTypeApplicationJson = "application/json"
 
-	IPInfoHost = "ipinfo.io"
+	IpifyHost                 = "api.ipify.org"
+	IpifyFormatQueryParam     = "format"
+	IpifyQueryParamFormatJson = "json"
 
-	DnsUpdateInterval = 5
+	DefaultDnsUpdateCronExpression = "*/5 * * * *"
 )
 
 func main() {
@@ -107,46 +103,69 @@ func main() {
 	// Validate args
 	validateArgs(zoneName, apiToken, recordType)
 
-	// Request all zones
+	// Request zones
+	zones := requestZones(apiToken)
+	// Find zone by the given name
 	fmt.Println("Requesting zone:", zoneName)
+	zone := findZoneByName(zones, zoneName)
 
-	for {
+	// Create the Hetzner DynDNS Cron Job
+	hetznerDynDnsJob := createHetznerDynDnsCronJob(zone, apiToken, recordType)
+
+	// Start the Cron Job with the expression
+	startCronScheduler(DefaultDnsUpdateCronExpression, hetznerDynDnsJob)
+}
+
+func startCronScheduler(cronExpression string, cronJob cron.FuncJob) {
+	waitUntilStopped := func() {
+		var endWaiter sync.WaitGroup
+		endWaiter.Add(1)
+		signalChannel := make(chan os.Signal, 1)
+		signal.Notify(signalChannel, os.Interrupt)
+		go func() {
+			<-signalChannel
+			endWaiter.Done()
+		}()
+		endWaiter.Wait()
+	}
+	cron := cron.New()
+	cron.AddJob(cronExpression, cronJob)
+	cron.Start()
+	fmt.Println("Started DynDNS")
+	waitUntilStopped()
+	fmt.Println("Stopped DynDNS")
+	cron.Stop()
+}
+
+func createHetznerDynDnsCronJob(zone Zone, apiToken string, recordType string) cron.FuncJob {
+	return cron.FuncJob(func() {
 		if isOnline() {
-			zones := requestZones(apiToken)
-			// Find zone by the given name
-			zone := findZoneByName(zones, zoneName)
-
 			records := requestZoneRecords(zone, apiToken)
 			dnsRecord := findDnsRecord(records, recordType)
-			ipInfo := requestIpInfo()
-			fmt.Println("Current public IP is:", ipInfo.IP)
+			ipify := requestIpify()
+			fmt.Println("Current public IP is:", ipify.IP)
 
-			if dnsRecord.Value == ipInfo.IP {
+			if dnsRecord.Value == ipify.IP {
 				fmt.Println("No DNS update required for",
 					zone.Name, "to IP", dnsRecord.Value)
 			} else {
 				fmt.Println("DNS update required for", zone.Name,
 					"with IP", dnsRecord.Value)
-				updatedDnsRecord := updateDnsRecord(dnsRecord, ipInfo, apiToken)
+				updatedDnsRecord := updateDnsRecord(dnsRecord, ipify, apiToken)
 				fmt.Println("Updated DNS for", zone.Name, "from IP",
 					dnsRecord.Value, "to IP", updatedDnsRecord.Value)
 			}
-		} else {
-			fmt.Println("Unable to build connection to the internet")
 		}
-
-		time.Sleep(DnsUpdateInterval * time.Second)
-	}
-
+	})
 }
 
 func isOnline() bool {
-	ipInfoUrl := url.URL{
+	geoIpUrl := url.URL{
 		Scheme: HttpsScheme,
-		Host:   IPInfoHost,
+		Host:   IpifyHost,
 	}
 
-	_, err := http.Get(ipInfoUrl.String())
+	_, err := http.Get(geoIpUrl.String())
 	return err == nil
 }
 
@@ -246,23 +265,23 @@ func requestZoneRecords(zone Zone, apiToken string) Records {
 	return records
 }
 
-func requestIpInfo() IPInfo {
-
+func requestIpify() Ipify {
 	requestUrl := url.URL{
-		Scheme: HttpsScheme,
-		Host:   IPInfoHost,
+		Scheme:   HttpsScheme,
+		Host:     IpifyHost,
+		RawQuery: IpifyFormatQueryParam + "=" + IpifyQueryParamFormatJson,
 	}
 
 	respBody := request(http.MethodGet, requestUrl,
 		map[string]string{}, []byte{})
 
-	var ipInfo IPInfo
-	json.Unmarshal(respBody, &ipInfo)
+	var ipify Ipify
+	json.Unmarshal(respBody, &ipify)
 
-	return ipInfo
+	return ipify
 }
 
-func updateDnsRecord(dnsRecord Record, ipInfo IPInfo, apiToken string) Record {
+func updateDnsRecord(dnsRecord Record, ipify Ipify, apiToken string) Record {
 
 	requestUrl := url.URL{
 		Scheme: HttpsScheme,
@@ -270,12 +289,12 @@ func updateDnsRecord(dnsRecord Record, ipInfo IPInfo, apiToken string) Record {
 		Path:   HetznerRecordsPath + "/" + dnsRecord.Id,
 	}
 
-	// Creating new DNS record with IP from IpInfo
+	// Creating new DNS record with IP from ipify.org
 	requestRecordUpdate := RecordUpdateRequest{
 		ZoneId: dnsRecord.ZoneId,
 		Type:   dnsRecord.Type,
 		Name:   dnsRecord.Name,
-		Value:  ipInfo.IP,
+		Value:  ipify.IP,
 		TTL:    dnsRecord.TTL,
 	}
 
