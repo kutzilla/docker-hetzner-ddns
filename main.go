@@ -63,17 +63,8 @@ type RecordUpdateResponse struct {
 	Record Record `json:"record"`
 }
 
-type IPInfo struct {
-	IP       string `json:"ip"`
-	Hostname string `json:"hostname"`
-	City     string `json:"city"`
-	Region   string `json:"region"`
-	Country  string `json:"country"`
-	Loc      string `json:"loc"`
-	Org      string `json:"org"`
-	Postal   string `json:"postal"`
-	Timezone string `json:"timezone"`
-	Readme   string `json:"readme"`
+type Ipify struct {
+	IP string `json:"ip"`
 }
 
 const (
@@ -97,7 +88,9 @@ const (
 
 	ContentTypeApplicationJson = "application/json"
 
-	IPInfoHost = "ipinfo.io"
+	IpifyHost                 = "api.ipify.org"
+	IpifyFormatQueryParam     = "format"
+	IpifyQueryParamFormatJson = "json"
 
 	DefaultDnsUpdateCronExpression = "*/5 * * * *"
 )
@@ -149,16 +142,16 @@ func createHetznerDynDnsCronJob(zone Zone, apiToken string, recordType string) c
 		if isOnline() {
 			records := requestZoneRecords(zone, apiToken)
 			dnsRecord := findDnsRecord(records, recordType)
-			ipInfo := requestIpInfo()
-			fmt.Println("Current public IP is:", ipInfo.IP)
+			ipify := requestIpify()
+			fmt.Println("Current public IP is:", ipify.IP)
 
-			if dnsRecord.Value == ipInfo.IP {
+			if dnsRecord.Value == ipify.IP {
 				fmt.Println("No DNS update required for",
 					zone.Name, "to IP", dnsRecord.Value)
 			} else {
 				fmt.Println("DNS update required for", zone.Name,
 					"with IP", dnsRecord.Value)
-				updatedDnsRecord := updateDnsRecord(dnsRecord, ipInfo, apiToken)
+				updatedDnsRecord := updateDnsRecord(dnsRecord, ipify, apiToken)
 				fmt.Println("Updated DNS for", zone.Name, "from IP",
 					dnsRecord.Value, "to IP", updatedDnsRecord.Value)
 			}
@@ -167,12 +160,12 @@ func createHetznerDynDnsCronJob(zone Zone, apiToken string, recordType string) c
 }
 
 func isOnline() bool {
-	ipInfoUrl := url.URL{
+	geoIpUrl := url.URL{
 		Scheme: HttpsScheme,
-		Host:   IPInfoHost,
+		Host:   IpifyHost,
 	}
 
-	_, err := http.Get(ipInfoUrl.String())
+	_, err := http.Get(geoIpUrl.String())
 	return err == nil
 }
 
@@ -272,23 +265,23 @@ func requestZoneRecords(zone Zone, apiToken string) Records {
 	return records
 }
 
-func requestIpInfo() IPInfo {
-
+func requestIpify() Ipify {
 	requestUrl := url.URL{
-		Scheme: HttpsScheme,
-		Host:   IPInfoHost,
+		Scheme:   HttpsScheme,
+		Host:     IpifyHost,
+		RawQuery: IpifyFormatQueryParam + "=" + IpifyQueryParamFormatJson,
 	}
 
 	respBody := request(http.MethodGet, requestUrl,
 		map[string]string{}, []byte{})
 
-	var ipInfo IPInfo
-	json.Unmarshal(respBody, &ipInfo)
+	var ipify Ipify
+	json.Unmarshal(respBody, &ipify)
 
-	return ipInfo
+	return ipify
 }
 
-func updateDnsRecord(dnsRecord Record, ipInfo IPInfo, apiToken string) Record {
+func updateDnsRecord(dnsRecord Record, ipify Ipify, apiToken string) Record {
 
 	requestUrl := url.URL{
 		Scheme: HttpsScheme,
@@ -296,12 +289,12 @@ func updateDnsRecord(dnsRecord Record, ipInfo IPInfo, apiToken string) Record {
 		Path:   HetznerRecordsPath + "/" + dnsRecord.Id,
 	}
 
-	// Creating new DNS record with IP from IpInfo
+	// Creating new DNS record with IP from ipify.org
 	requestRecordUpdate := RecordUpdateRequest{
 		ZoneId: dnsRecord.ZoneId,
 		Type:   dnsRecord.Type,
 		Name:   dnsRecord.Name,
-		Value:  ipInfo.IP,
+		Value:  ipify.IP,
 		TTL:    dnsRecord.TTL,
 	}
 
