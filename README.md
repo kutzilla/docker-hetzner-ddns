@@ -39,7 +39,7 @@ docker run kutzilla/hetzner-ddns example.com my-secret-api-token A
 
 ## Optional Parameters
 
-* `-e DNS_RECORD_NAME` - The name of the DNS-record that DDNS updates should be applied to. This could be `sub` if you like to update the subdomain `sub.example.com` of `example.com`.
+* `-e DNS_RECORD_NAME` - The name of the DNS-record that DDNS updates should be applied to. This could be `sub` if you like to update the subdomain `sub.example.com` of `example.com`. The default value is `@`.
 
 ## Build
 
