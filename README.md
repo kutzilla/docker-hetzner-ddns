@@ -37,6 +37,9 @@ docker run kutzilla/hetzner-ddns example.com my-secret-api-token A
 * `-e RECORD_TYPE` - The record type of your zone. If your zone uses an IPv4 address use `A`. Use `AAAA` if it uses an IPv6 address. **Required**
 * `--restart=always` - ensure the container restarts automatically after host reboot.
 
+## Optional Parameters
+
+* `-e DNS_RECORD_NAME` - The name of the DNS-record that DDNS updates should be applied to. This could be `sub` if you like to update the subdomain `sub.example.com` of `example.com`. The default value is `@`.
 
 ## Build
 
