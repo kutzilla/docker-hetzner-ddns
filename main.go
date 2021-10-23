@@ -67,13 +67,21 @@ type Ipify struct {
 	IP string `json:"ip"`
 }
 
+type DnsParameter struct {
+	zone       Zone
+	apiToken   string
+	recordName string
+	recordType string
+}
+
 const (
 	HttpsScheme = "https"
 
-	EnvZoneName      = "ZONE_NAME"
-	EnvApiToken      = "API_TOKEN"
-	EnvRecordType    = "RECORD_TYPE"
-	EnvDnsRecordName = "DNS_RECORD_NAME"
+	EnvZoneName       = "ZONE_NAME"
+	EnvApiToken       = "API_TOKEN"
+	EnvRecordType     = "RECORD_TYPE"
+	EnvRecordName     = "RECORD_NAME"
+	EnvCronExpression = "CRON_EXPRESSION"
 
 	IPv4RecordType = "A"
 	IPv6RecordType = "AAAA"
@@ -91,8 +99,8 @@ const (
 	IpifyFormatQueryParam     = "format"
 	IpifyQueryParamFormatJson = "json"
 
-	DefaultDnsRecordName           = "@"
-	DefaultDnsUpdateCronExpression = "*/5 * * * *"
+	DefaultRecordName     = "@"
+	DefaultCronExpression = "*/5 * * * *"
 )
 
 func main() {
@@ -100,12 +108,12 @@ func main() {
 	var zoneName, apiToken, recordType string
 	setArgs(&zoneName, &apiToken, &recordType)
 
-	// Set optional args or set the default values
-	var dnsRecordName string
-	setOptionalArgs(&dnsRecordName)
-
 	// Validate args
 	validateArgs(zoneName, apiToken, recordType)
+
+	// Set optional args or set the default values
+	var recordName, cronExpression string
+	setOptionalArgs(&recordName, &cronExpression)
 
 	// Request zones
 	zones := requestZones(apiToken)
@@ -113,11 +121,19 @@ func main() {
 	fmt.Println("Requesting zone:", zoneName)
 	zone := findZoneByName(zones, zoneName)
 
+	// Create the DNS Parameter
+	dnsParameter := DnsParameter{
+		zone:       zone,
+		apiToken:   apiToken,
+		recordType: recordType,
+		recordName: recordName,
+	}
+
 	// Create the Hetzner DynDNS Cron Job
-	hetznerDynDnsJob := createHetznerDynDnsCronJob(zone, apiToken, recordType, dnsRecordName)
+	hetznerDynDnsJob := createHetznerDynDnsCronJobBy(dnsParameter)
 
 	// Start the Cron Job with the expression
-	startCronScheduler(DefaultDnsUpdateCronExpression, hetznerDynDnsJob)
+	startCronScheduler(cronExpression, hetznerDynDnsJob)
 }
 
 func startCronScheduler(cronExpression string, cronJob cron.FuncJob) {
@@ -141,30 +157,34 @@ func startCronScheduler(cronExpression string, cronJob cron.FuncJob) {
 	cron.Stop()
 }
 
-func createHetznerDynDnsCronJob(zone Zone, apiToken string, recordType string, dnsRecordName string) cron.FuncJob {
+func createHetznerDynDnsCronJobBy(dnsParameter DnsParameter) cron.FuncJob {
+	return createHetznerDynDnsCronJob(dnsParameter.zone, dnsParameter.apiToken, dnsParameter.recordType, dnsParameter.recordName)
+}
+
+func createHetznerDynDnsCronJob(zone Zone, apiToken string, recordType string, recordName string) cron.FuncJob {
 	return cron.FuncJob(func() {
 		if isOnline() {
 			records := requestZoneRecords(zone, apiToken)
-			dnsRecord := findDnsRecord(records, recordType, dnsRecordName)
+			record := findDnsRecord(records, recordType, recordName)
 			ipify := requestIpify()
 			fmt.Println("Current public IP is:", ipify.IP)
 
 			var domain string
-			if dnsRecordName == DefaultDnsRecordName {
+			if recordName == DefaultRecordName {
 				domain = zone.Name
 			} else {
-				domain = dnsRecordName + "." + zone.Name
+				domain = recordName + "." + zone.Name
 			}
 
-			if dnsRecord.Value == ipify.IP {
-				fmt.Println("No DNS update required for", dnsRecordName+
-					domain, "to IP", dnsRecord.Value)
+			if record.Value == ipify.IP {
+				fmt.Println("No DNS update required for", recordName+
+					domain, "to IP", record.Value)
 			} else {
 				fmt.Println("DNS update required for", domain,
-					"with IP", dnsRecord.Value)
-				updatedDnsRecord := updateDnsRecord(dnsRecord, ipify, apiToken)
+					"with IP", record.Value)
+				updatedDnsRecord := updateDnsRecord(record, ipify, apiToken)
 				fmt.Println("Updated DNS for", domain, "from IP",
-					dnsRecord.Value, "to IP", updatedDnsRecord.Value)
+					record.Value, "to IP", updatedDnsRecord.Value)
 			}
 		}
 	})
@@ -192,13 +212,21 @@ func setArgs(zoneName *string, apiToken *string, recordType *string) {
 	}
 }
 
-func setOptionalArgs(dnsRecordName *string) {
+func setOptionalArgs(recordName *string, cronExpression *string) {
 	if len(os.Args) > 4 {
-		*dnsRecordName = os.Args[4]
-	} else if os.Getenv(EnvDnsRecordName) != "" {
-		*dnsRecordName = os.Getenv(EnvDnsRecordName)
+		*recordName = os.Args[4]
+	} else if os.Getenv(EnvRecordName) != "" {
+		*recordName = os.Getenv(EnvRecordName)
 	} else {
-		*dnsRecordName = DefaultDnsRecordName
+		*recordName = DefaultRecordName
+	}
+
+	if len(os.Args) > 5 {
+		*cronExpression = os.Args[5]
+	} else if os.Getenv(EnvCronExpression) != "" {
+		*cronExpression = os.Getenv(EnvCronExpression)
+	} else {
+		*cronExpression = DefaultCronExpression
 	}
 }
 
@@ -321,7 +349,8 @@ func updateDnsRecord(dnsRecord Record, ipify Ipify, apiToken string) Record {
 
 	requestBody, _ := json.Marshal(requestRecordUpdate)
 
-	respBody := request(http.MethodPut, requestUrl, map[string]string{HetznerAuthApiTokenHeader: apiToken, HetznerContentTypeHeader: ContentTypeApplicationJson}, requestBody)
+	respBody := request(http.MethodPut, requestUrl, map[string]string{HetznerAuthApiTokenHeader: apiToken,
+		HetznerContentTypeHeader: ContentTypeApplicationJson}, requestBody)
 
 	var recordUpdateResponse RecordUpdateResponse
 	json.Unmarshal(respBody, &recordUpdateResponse)
