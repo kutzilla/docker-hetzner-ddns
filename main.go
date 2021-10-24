@@ -74,6 +74,13 @@ type DnsParameter struct {
 	recordType string
 }
 
+type NotFoundError struct {
+}
+
+func (e *NotFoundError) Error() string {
+	return "The zone was not found"
+}
+
 const (
 	HttpsScheme = "https"
 
@@ -119,7 +126,7 @@ func main() {
 	zones := requestZones(apiToken)
 	// Find zone by the given name
 	fmt.Println("Requesting zone:", zoneName)
-	zone := findZoneByName(zones, zoneName)
+	zone, _ := findZoneByName(zones, zoneName)
 
 	// Create the DNS Parameter
 	dnsParameter := DnsParameter{
@@ -165,7 +172,7 @@ func createHetznerDynDnsCronJob(zone Zone, apiToken string, recordType string, r
 	return cron.FuncJob(func() {
 		if isOnline() {
 			records := requestZoneRecords(zone, apiToken)
-			record := findDnsRecord(records, recordType, recordName)
+			record, _ := findDnsRecord(records, recordType, recordName)
 			ipify := requestIpify()
 			fmt.Println("Current public IP is:", ipify.IP)
 
@@ -358,22 +365,24 @@ func updateDnsRecord(dnsRecord Record, ipify Ipify, apiToken string) Record {
 	return recordUpdateResponse.Record
 }
 
-func findZoneByName(zones Zones, zoneName string) Zone {
+func findZoneByName(zones Zones, zoneName string) (Zone, error) {
 	var foundZone Zone
 	for _, v := range zones.Zone {
 		if v.Name == zoneName {
 			foundZone = v
+			return foundZone, nil
 		}
 	}
-	return foundZone
+	return foundZone, &NotFoundError{}
 }
 
-func findDnsRecord(records Records, recordType string, dnsRecordName string) Record {
+func findDnsRecord(records Records, recordType string, dnsRecordName string) (Record, error) {
 	var dnsRecord Record
 	for _, v := range records.Record {
 		if v.Name == dnsRecordName && v.Type == recordType {
 			dnsRecord = v
+			return dnsRecord, nil
 		}
 	}
-	return dnsRecord
+	return dnsRecord, &NotFoundError{}
 }
