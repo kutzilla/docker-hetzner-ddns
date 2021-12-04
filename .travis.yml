@@ -7,4 +7,6 @@ go:
   - master
 
 script:
-  - go build main.go
+  - go test ./pkg/*
+  - go mod download
+  - go build -o hetzner-ddns ./cmd/hetzner-ddns
