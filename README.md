@@ -47,6 +47,6 @@ docker run kutzilla/hetzner-ddns example.com my-secret-api-token A
 Build the latest version of the Docker image with the following command:
 
 ```
-docker build kutzilla/hetzner-ddns .
+docker build -t kutzilla/hetzner-ddns .
 ```
 
