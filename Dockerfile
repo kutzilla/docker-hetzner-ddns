@@ -4,10 +4,10 @@ WORKDIR /app
 
 COPY go.mod ./
 COPY go.sum ./
+COPY /pkg /app/pkg
+COPY  /cmd /app/cmd
+
 RUN go mod download
+RUN go build -o hetzner-ddns ./cmd/hetzner-ddns
 
-COPY main.go ./
-
-RUN go build -o /hetzner-ddns
-
-ENTRYPOINT ["/hetzner-ddns"]
+ENTRYPOINT ["/app/hetzner-ddns"]
