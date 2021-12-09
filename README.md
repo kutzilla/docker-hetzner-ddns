@@ -1,4 +1,4 @@
-[![Build Status](https://jenkins.matthias-kutz.com/job/docker-hetzner-ddns/badge/icon)](https://jenkins.matthias-kutz.com/job/docker-hetzner-ddns/) [![Docker Pulls](https://img.shields.io/docker/pulls/kutzilla/hetzner-ddns.svg)](https://hub.docker.com/r/kutzilla/hetzner-ddns)
+[![Build Status](https://jenkins.matthias-kutz.com/job/gitea/job/docker-hetzner-ddns/job/develop/badge/icon)](https://jenkins.matthias-kutz.com/job/gitea/job/docker-hetzner-ddns/job/develop/) [![Docker Pulls](https://img.shields.io/docker/pulls/kutzilla/hetzner-ddns.svg)](https://hub.docker.com/r/kutzilla/hetzner-ddns)
 
 # Docker Hetzner DDNS
 
