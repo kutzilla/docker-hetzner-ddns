@@ -11,13 +11,6 @@ pipeline {
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                git branch: 'develop', url: 'https://gitea.matthias-kutz.com/matthias/docker-hetzner-ddns.git'
-
-            }
-        }
-        
         stage('Install') {
             steps {
                 sh 'go mod download'
