@@ -17,8 +17,8 @@ Quick Setup:
 ```shell
 docker run \
 -e ZONE_NAME=example.com \ 
--e HETZNER_API_TOKEN=my-secret-api-token \
--e ZONE_RECORD_TYPE=A \
+-e API_TOKEN=my-secret-api-token \
+-e RECORD_TYPE=A \
 kutzilla/hetzner-ddns
 ```
 
