@@ -1,12 +1,10 @@
 package main
 
 import (
-	"fmt"
-
 	"matthias-kutz.com/hetzner-ddns/pkg/args"
-	"matthias-kutz.com/hetzner-ddns/pkg/cron"
 	"matthias-kutz.com/hetzner-ddns/pkg/ddns"
-	"matthias-kutz.com/hetzner-ddns/pkg/hetzner"
+	"matthias-kutz.com/hetzner-ddns/pkg/dns"
+	"matthias-kutz.com/hetzner-ddns/pkg/ip"
 )
 
 func main() {
@@ -21,18 +19,29 @@ func main() {
 	var recordName, cronExpression string
 	args.SetOptionalArgs(&recordName, &cronExpression)
 
-	// Request zones
-	zones := hetzner.RequestZones(apiToken)
-	// Find zone by the given name
-	fmt.Println("Requesting zone:", zoneName)
-	zone, _ := hetzner.FindZoneByName(zones, zoneName)
+	dnsProvider := dns.Hetzner{
+		ApiToken: apiToken,
+	}
 
-	// Create the DNS Parameter
-	dnsParameter := ddns.CreateDynDnsParameters(zone, apiToken, recordType, recordName)
+	ipProvider := ip.Ipify{}
 
-	// Create the Hetzner DynDNS Cron Job
-	hetznerDynDnsJob := ddns.CreateHetznerDynDnsCronJobBy(dnsParameter)
+	ddnsParameter := ddns.Parameter{
+		ZoneName:   zoneName,
+		RecordName: recordName,
+		RecordType: recordType,
+		TTL:        0,
+	}
 
-	// Start the Cron Job with the expression
-	cron.StartCronScheduler(cronExpression, hetznerDynDnsJob)
+	ddnsService := ddns.Service{
+		DnsProvider: dnsProvider,
+		IpProvider:  ipProvider,
+		Parameter:   ddnsParameter,
+	}
+
+	ddnsScheduler := ddns.Scheduler{
+		CronExpression: cronExpression,
+		Service:        ddnsService,
+	}
+
+	ddnsScheduler.Start()
 }

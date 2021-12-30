@@ -8,7 +8,7 @@ import (
 	"net/url"
 )
 
-func Request(httpMethod string, url url.URL, headers map[string]string, body []byte) []byte {
+func Request(httpMethod string, url url.URL, headers map[string]string, body []byte) ([]byte, error) {
 	// Create client
 	client := &http.Client{}
 
@@ -17,7 +17,7 @@ func Request(httpMethod string, url url.URL, headers map[string]string, body []b
 
 	if err != nil {
 		fmt.Println("Failure : ", err)
-		return []byte{}
+		return []byte{}, err
 	}
 
 	// Headers
@@ -30,11 +30,11 @@ func Request(httpMethod string, url url.URL, headers map[string]string, body []b
 
 	if err != nil {
 		fmt.Println("Failure : ", err)
-		return []byte{}
+		return []byte{}, err
 	}
 
 	// Read Response Body
 	respBody, _ := ioutil.ReadAll(resp.Body)
 
-	return respBody
+	return respBody, nil
 }
