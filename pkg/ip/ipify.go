@@ -1,4 +1,4 @@
-package ipify
+package ip
 
 import (
 	"encoding/json"
@@ -8,8 +8,11 @@ import (
 	"matthias-kutz.com/hetzner-ddns/pkg/request"
 )
 
-type Ipify struct {
+type ipify struct {
 	IP string `json:"ip"`
+}
+
+type Ipify struct {
 }
 
 const (
@@ -20,7 +23,7 @@ const (
 	IpifyQueryParamFormatJson = "json"
 )
 
-func IsOnline() bool {
+func (i Ipify) IsOnline() bool {
 	ipifyUrl := url.URL{
 		Scheme: HttpsScheme,
 		Host:   IpifyHost,
@@ -30,18 +33,27 @@ func IsOnline() bool {
 	return err == nil
 }
 
-func RequestIpify() Ipify {
+func (i Ipify) Request() (IP, error) {
 	requestUrl := url.URL{
 		Scheme:   HttpsScheme,
 		Host:     IpifyHost,
 		RawQuery: IpifyFormatQueryParam + "=" + IpifyQueryParamFormatJson,
 	}
 
-	respBody := request.Request(http.MethodGet, requestUrl,
+	respBody, err := request.Request(http.MethodGet, requestUrl,
 		map[string]string{}, []byte{})
 
-	var ipify Ipify
+	if err != nil {
+		return IP{}, &ProviderNotAvailableError{ProviderName: IpifyHost}
+	}
+
+	var ipify ipify
 	json.Unmarshal(respBody, &ipify)
 
-	return ipify
+	ip := IP{
+		Value:  ipify.IP,
+		Source: IpifyHost,
+	}
+
+	return ip, nil
 }
