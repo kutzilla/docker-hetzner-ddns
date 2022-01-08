@@ -5,9 +5,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/namsral/flag"
 )
 
 func TestReadEnvs(t *testing.T) {
+	flag.ResetForTesting(nil)
 	assert := assert.New(t)
 
 	os.Setenv(EnvZoneName, "example.com")
@@ -28,6 +30,7 @@ func TestReadEnvs(t *testing.T) {
 }
 
 func TestReadOptionalEnvs(t *testing.T) {
+	flag.ResetForTesting(nil)
 	assert := assert.New(t)
 
 	os.Setenv(EnvZoneName, "example.com")
@@ -50,6 +53,7 @@ func TestReadOptionalEnvs(t *testing.T) {
 }
 
 func TestAllMissingArgs(t *testing.T) {
+	flag.ResetForTesting(nil)
 	assert := assert.New(t)
 
 	// No args
@@ -58,6 +62,7 @@ func TestAllMissingArgs(t *testing.T) {
 }
 
 func TestFewMissingArgs(t *testing.T) {
+	flag.ResetForTesting(nil)
 	assert := assert.New(t)
 
 	// Missing mandatory args
