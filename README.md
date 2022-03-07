@@ -1,4 +1,4 @@
-[![Build Status](https://app.travis-ci.com/kutzilla/docker-hetzner-ddns.svg?branch=master)](https://app.travis-ci.com/kutzilla/docker-hetzner-ddns) [![Docker Pulls](https://img.shields.io/docker/pulls/kutzilla/hetzner-ddns.svg)](https://hub.docker.com/r/kutzilla/hetzner-ddns)
+[![Build Status](https://jenkins.matthias-kutz.com/job/gitea/job/docker-hetzner-ddns/job/develop/badge/icon)](https://jenkins.matthias-kutz.com/job/gitea/job/docker-hetzner-ddns/job/develop/) [![Docker Pulls](https://img.shields.io/docker/pulls/kutzilla/hetzner-ddns.svg)](https://hub.docker.com/r/kutzilla/hetzner-ddns)
 
 # Docker Hetzner DDNS
 
@@ -33,7 +33,7 @@ docker run kutzilla/hetzner-ddns example.com my-secret-api-token A
 
 
 * `-e ZONE_NAME` - The DNS zone that DDNS updates should be applied to. **Required**
-* `-e API_TOKEN` - Your Hetzner  API token. **Required**
+* `-e API_TOKEN` - Your Hetzner API token. **Required**
 * `-e RECORD_TYPE` - The record type of your zone. If your zone uses an IPv4 address use `A`. Use `AAAA` if it uses an IPv6 address. **Required**
 * `--restart=always` - ensure the container restarts automatically after host reboot.
 
@@ -41,12 +41,13 @@ docker run kutzilla/hetzner-ddns example.com my-secret-api-token A
 
 * `-e RECORD_NAME` - The name of the DNS-record that DDNS updates should be applied to. This could be `sub` if you like to update the subdomain `sub.example.com` of `example.com`. The default value is `@`.
 * `-e CRON_EXPRESSION` - The cron expression of the DDNS update interval. The default is every 5 minutes - `*/5 * * * *`.
+* `-e TTL` - The TTL (Time To Live) value specifies how long the record is valid before the nameservers are prompted to reload the zone file. The default is `86400`.
 
 ## Build
 
 Build the latest version of the Docker image with the following command:
 
 ```
-docker build kutzilla/hetzner-ddns .
+docker build -t kutzilla/hetzner-ddns .
 ```
 
