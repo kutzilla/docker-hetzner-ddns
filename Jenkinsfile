@@ -22,5 +22,21 @@ pipeline {
                 sh 'go test ./pkg/*'
             }
         }
+        stage('Package') {
+            when {
+                branch 'develop'
+            } 
+            steps {
+                docker.build("kutzilla/hetzner-ddns:${env.BRANCH_NAME}")
+            }      
+        }
+        stage('Publish') {
+            when {
+                branch 'master'
+            }
+            steps {
+                echo 'Add publish'
+            }
+        }
     }
 }
