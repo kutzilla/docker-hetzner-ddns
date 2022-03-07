@@ -26,9 +26,11 @@ pipeline {
             when {
                 branch 'develop'
             } 
-            
-            docker.build("kutzilla/hetzner-ddns:${env.BRANCH_NAME}")
-     
+            steps {
+                script {
+                    docker.build("kutzilla/hetzner-ddns:${env.BRANCH_NAME}")
+                }
+            }      
         }
         stage('Publish') {
             when {
