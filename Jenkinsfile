@@ -6,10 +6,6 @@ pipeline {
         go '1.17.4'
     }
 
-    environment {
-        BUILD_VERSION = 'latest'
-    }
-
     stages {
         stage('Install') {
             steps {
@@ -35,12 +31,7 @@ pipeline {
             } 
             steps {
                 script {
-                    def buildVersion = env.BRANCH_NAME.split('\\/')
-                    if (buildVersion.length > 1) {
-                        env.BUILD_VERSION = buildVersion[1]
-                    }
-
-                    def image = docker.build("kutzilla/hetzner-ddns:${BUILD_VERSION}")
+                    docker.build("kutzilla/hetzner-ddns:latest")
                 }
             }      
         }
@@ -49,8 +40,16 @@ pipeline {
                 branch 'release/*'
             }
             steps {
-                script {
-                    image.push()
+                script {                    
+                    def buildVersion = env.BRANCH_NAME.split('\\/')
+                    if (buildVersion.length > 1) {
+                        def version = buildVersion[1]
+                        def image = docker.build("kutzilla/hetzner-ddns:${version}")
+                        image.push()
+                    } else {
+                        exit('No version to publish provided')
+                    }
+
                 }
 
             }
