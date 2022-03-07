@@ -6,6 +6,10 @@ pipeline {
         go '1.17.4'
     }
 
+    environment { 
+        REGISTRY_CREDENTIAL_ID = 'docker-hub' 
+    }
+
     stages {
         stage('Install') {
             steps {
@@ -44,7 +48,7 @@ pipeline {
                     def buildVersion = env.BRANCH_NAME.split('\\/')
                     if (buildVersion.length > 1) {
                         def version = buildVersion[1]
-                        docker.withRegistry('https://docker.io', 'docker-hub') {
+                        docker.withRegistry('', env.REGISTRY_CREDENTIAL_ID) {
                             def image = docker.build("kutzilla/hetzner-ddns:${version}")
                             image.push()
                         }
