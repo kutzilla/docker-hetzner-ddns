@@ -38,7 +38,7 @@ pipeline {
             }
             steps {
                 script {
-                    def prefix, releaseVersion = env.BRANCH.split('\\/')
+                    def prefix, releaseVersion = env.BRANCH_NAME.split('\\/')
                     echo 'Publishing ' + releaseVersion
                 }
 
