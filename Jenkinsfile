@@ -34,14 +34,12 @@ pipeline {
         }
         stage('Publish') {
             when {
-                branch 'develop'
+                branch 'release/*'
             }
             steps {
                 script {
-                        latestTag = sh(returnStdout:  true, script: "git tag --sort=-creatordate | head -n 1").trim()
-                        env.BUILD_VERSION = latestTag
-                        echo "env-BUILD_VERSION"
-                        echo "${env.BUILD_VERSION}"
+                    def prefix, releaseVersion = env.BRANCH.split('\\/')
+                    echo 'Publishing ' + releaseVersion
                 }
 
             }
