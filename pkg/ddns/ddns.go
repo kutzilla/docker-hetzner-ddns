@@ -61,17 +61,17 @@ func (service Service) Run() {
 
 	// Check if record value has to be updated
 	if ip.Value == record.Value {
-		fmt.Println("No DNS update required for", service.Parameter.ZoneName, "to IP", ip.Value)
+		fmt.Println("No DNS update required for", service.Parameter.ZoneName, "with IP", ip.Value)
 		return
 	}
 
-	fmt.Println("DNS updated required for", service.Parameter.ZoneName, "with IP", ip.Value)
+	fmt.Println("DNS update required for", service.Parameter.ZoneName, "with current IP", record.Value, "to IP", ip.Value)
 	// Update the record at the dns provider
-	updatedRecord, err := service.DnsProvider.UpdateZoneRecord(zone, updateRecord)
+	updateRecord, err = service.DnsProvider.UpdateZoneRecord(zone, updateRecord)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	fmt.Println("Updated DNS for", service.Parameter.ZoneName, "from IP", updateRecord.Value, "to IP", updatedRecord.Value)
+	fmt.Println("Updated DNS for", service.Parameter.ZoneName, "from IP", record.Value, "to IP", updateRecord.Value)
 
 }
