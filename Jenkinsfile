@@ -6,6 +6,10 @@ pipeline {
         go '1.17.4'
     }
 
+    environment { 
+        REGISTRY_CREDENTIAL_ID = 'docker-hub' 
+    }
+
     stages {
         stage('Install') {
             steps {
@@ -24,7 +28,10 @@ pipeline {
         }
         stage('Package') {
             when {
-                branch 'develop'
+                anyOf {
+                    branch 'develop';
+                    branch 'release/*'
+                }
             } 
             steps {
                 script {
@@ -37,9 +44,18 @@ pipeline {
                 branch 'release/*'
             }
             steps {
-                script {
-                    def prefix, releaseVersion = env.BRANCH.split('\\/')
-                    echo 'Publishing ' + releaseVersion
+                script {                    
+                    def buildVersion = env.BRANCH_NAME.split('\\/')
+                    if (buildVersion.length > 1) {
+                        def version = buildVersion[1]
+                        docker.withRegistry('', env.REGISTRY_CREDENTIAL_ID) {
+                            def image = docker.build("kutzilla/hetzner-ddns:${version}")
+                            image.push()
+                        }
+                    } else {
+                        exit('No version to publish provided')
+                    }
+
                 }
 
             }
