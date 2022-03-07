@@ -10,12 +10,12 @@ const (
 	EnvCronExpression = "CRON_EXPRESSION"
 	EnvTimeToLive     = "TTL"
 
-	DescZoneName       = "Name of the zone"
-	DescApiToken       = ""
-	DescRecordType     = ""
-	DescRecordName     = ""
-	DescCronExpression = ""
-	DescTimeToLive     = ""
+	DescZoneName       = "The DNS zone that DDNS updates should be applied to."
+	DescApiToken       = "Your Hetzner API token."
+	DescRecordType     = "The record type of your zone. If your zone uses an IPv4 address use `A`. Use `AAAA` if it uses an IPv6 address."
+	DescRecordName     = "The name of the DNS-record that DDNS updates should be applied to. This could be `sub` if you like to update the subdomain `sub.example.com` of `example.com`. The default value is `@`"
+	DescCronExpression = "The cron expression of the DDNS update interval. The default is every 5 minutes - `*/5 * * * *`"
+	DescTimeToLive     = "Time to live of the recourd"
 
 	DefaultRecordName     = "@"
 	DefaultCronExpression = "*/5 * * * *"
