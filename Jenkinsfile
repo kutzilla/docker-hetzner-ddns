@@ -37,8 +37,11 @@ pipeline {
                 branch 'develop'
             }
             steps {
-                def latestTag = sh(returnStdout: true, script: "git tag --sort version:refname | tail -1").trim()
-                echo 'Publishing latest ' + latestTag
+                script {
+                    def latestTag = sh(returnStdout: true, script: "git tag --sort version:refname | tail -1").trim()
+                    echo "Publishing latest ${latestTag}"
+                }
+
             }
         }
     }
