@@ -44,8 +44,10 @@ pipeline {
                     def buildVersion = env.BRANCH_NAME.split('\\/')
                     if (buildVersion.length > 1) {
                         def version = buildVersion[1]
-                        def image = docker.build("kutzilla/hetzner-ddns:${version}")
-                        image.push()
+                        docker.withRegistry('https://docker.io', 'docker-hub') {
+                            def image = docker.build("kutzilla/hetzner-ddns:${version}")
+                            image.push()
+                        }
                     } else {
                         exit('No version to publish provided')
                     }
