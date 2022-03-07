@@ -28,7 +28,7 @@ pipeline {
             } 
             steps {
                 script {
-                    docker.build("kutzilla/hetzner-ddns:${env.BRANCH_NAME}")
+                    docker.build("kutzilla/hetzner-ddns:latest")
                 }
             }      
         }
