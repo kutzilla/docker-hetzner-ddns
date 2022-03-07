@@ -34,10 +34,11 @@ pipeline {
         }
         stage('Publish') {
             when {
-                branch 'master'
+                branch 'develop'
             }
             steps {
-                echo 'Add publish'
+                latestTag = sh(returnStdout: true, script: "git tag --sort version:refname | tail -1").trim()
+                echo 'Publishing latest ' + latestTag
             }
         }
     }
