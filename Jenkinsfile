@@ -5,10 +5,6 @@ pipeline {
     tools {
         go '1.17.4'
     }
-    
-    environment {
-        GO111MODULE = 'on'
-    }
 
     stages {
         stage('Install') {
