@@ -36,7 +36,7 @@ pipeline {
             steps {
                 script {
                     def buildVersion = env.BRANCH_NAME.split('\\/')
-                    if (buildVersion.length) > 1 {
+                    if (buildVersion.length > 1) {
                         env.BUILD_VERSION = buildVersion[1]
                     }
 
