@@ -1,35 +1,27 @@
 package main
 
 import (
-	"matthias-kutz.com/hetzner-ddns/pkg/args"
+	"matthias-kutz.com/hetzner-ddns/pkg/conf"
 	"matthias-kutz.com/hetzner-ddns/pkg/ddns"
 	"matthias-kutz.com/hetzner-ddns/pkg/dns"
 	"matthias-kutz.com/hetzner-ddns/pkg/ip"
 )
 
 func main() {
-	// Set args by cli values or env variables
-	var zoneName, apiToken, recordType string
-	args.SetArgs(&zoneName, &apiToken, &recordType)
-
-	// Validate args
-	args.ValidateArgs(zoneName, apiToken, recordType)
-
-	// Set optional args or set the default values
-	var recordName, cronExpression string
-	args.SetOptionalArgs(&recordName, &cronExpression)
+	// read the conf based on the environment parameters
+	dynDnsConf := conf.Read()
 
 	dnsProvider := dns.Hetzner{
-		ApiToken: apiToken,
+		ApiToken: dynDnsConf.DnsConf.ApiToken,
 	}
 
 	ipProvider := ip.Ipify{}
 
 	ddnsParameter := ddns.Parameter{
-		ZoneName:   zoneName,
-		RecordName: recordName,
-		RecordType: recordType,
-		TTL:        0,
+		ZoneName:   dynDnsConf.DnsConf.ZoneName,
+		RecordName: dynDnsConf.RecordConf.RecordName,
+		RecordType: dynDnsConf.RecordConf.RecordType,
+		TTL:        dynDnsConf.RecordConf.TTL,
 	}
 
 	ddnsService := ddns.Service{
@@ -39,7 +31,7 @@ func main() {
 	}
 
 	ddnsScheduler := ddns.Scheduler{
-		CronExpression: cronExpression,
+		CronExpression: dynDnsConf.CronConf.CronExpression,
 		Service:        ddnsService,
 	}
 

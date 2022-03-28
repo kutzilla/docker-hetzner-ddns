@@ -1,6 +1,11 @@
 package conf
 
-import "github.com/namsral/flag"
+import (
+	"fmt"
+	"os"
+
+	"github.com/namsral/flag"
+)
 
 const (
 	EnvZoneName       = "ZONE_NAME"
@@ -48,10 +53,10 @@ type ArgumentMissingError struct {
 }
 
 func (e *ArgumentMissingError) Error() string {
-	return "The argument " + e.argumentName + " is missing"
+	return "The mandatory argument " + e.argumentName + " is missing"
 }
 
-func Read() (DynDnsConf, error) {
+func Read() DynDnsConf {
 	// Mandatory flags
 	var zoneName, apiToken, recordType string
 	flag.StringVar(&zoneName, EnvZoneName, zoneName, DescZoneName)
@@ -79,7 +84,17 @@ func Read() (DynDnsConf, error) {
 		CronConf: CronConf{CronExpression: cronExpression},
 	}
 
-	return validate(dynDnsConf)
+	validatedConf, err := validate(dynDnsConf)
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+
+	return validatedConf
+}
+
+func PrintUsage() {
+	flag.Usage()
 }
 
 func validate(dynDnsConf DynDnsConf) (DynDnsConf, error) {
