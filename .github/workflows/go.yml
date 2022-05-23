@@ -1,0 +1,25 @@
+name: build
+
+on:
+  push:
+    branches: [ develop, master ]
+  pull_request:
+    branches: [ develop, master ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.17.4
+
+    - name: Build
+      run: go build -o hetzner-ddns ./cmd/hetzner-ddns
+
+    - name: Test
+      run: go test ./pkg/*
