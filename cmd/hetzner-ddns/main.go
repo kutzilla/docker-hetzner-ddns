@@ -8,14 +8,15 @@ import (
 )
 
 func main() {
-	// read the conf based on the environment parameters
 	dynDnsConf := conf.Read()
 
 	dnsProvider := dns.Hetzner{
 		ApiToken: dynDnsConf.DnsConf.ApiToken,
 	}
 
-	ipProvider := ip.Ipify{}
+	ipProvider := ip.Ipify{
+		IpVersion: dynDnsConf.ProviderConf.IpVersion,
+	}
 
 	ddnsParameter := ddns.Parameter{
 		ZoneName:   dynDnsConf.DnsConf.ZoneName,
