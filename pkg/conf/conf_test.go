@@ -17,7 +17,7 @@ func TestReadOptionalEnvs(t *testing.T) {
 	os.Setenv(EnvTimeToLive, "43200")
 	os.Setenv(EnvCronExpression, "*/10 * * * *")
 
-	dynDnsConf, _ := Read()
+	dynDnsConf := Read()
 	// Check optional args
 	assert.NotEqual(DefaultRecordName, dynDnsConf.RecordConf.RecordName)
 	assert.Equal("www", dynDnsConf.RecordConf.RecordName)

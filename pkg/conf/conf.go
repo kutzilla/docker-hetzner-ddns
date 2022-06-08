@@ -1,6 +1,11 @@
 package conf
 
-import "github.com/namsral/flag"
+import (
+	"fmt"
+	"os"
+
+	"github.com/namsral/flag"
+)
 
 const (
 	EnvZoneName       = "ZONE_NAME"
@@ -20,12 +25,17 @@ const (
 	DefaultRecordName     = "@"
 	DefaultCronExpression = "*/5 * * * *"
 	DefaultTimeToLive     = 86400
+
+	IPv4           = "IPv4"
+	IPv6           = "IPv6"
+	IPv6RecordType = "AAAA"
 )
 
 type DynDnsConf struct {
-	DnsConf    DnsConf
-	RecordConf RecordConf
-	CronConf   CronConf
+	DnsConf      DnsConf
+	RecordConf   RecordConf
+	ProviderConf ProviderConf
+	CronConf     CronConf
 }
 
 type DnsConf struct {
@@ -43,15 +53,19 @@ type CronConf struct {
 	CronExpression string
 }
 
+type ProviderConf struct {
+	IpVersion string
+}
+
 type ArgumentMissingError struct {
 	argumentName string
 }
 
 func (e *ArgumentMissingError) Error() string {
-	return "The argument " + e.argumentName + " is missing"
+	return "The mandatory argument " + e.argumentName + " is missing"
 }
 
-func Read() (DynDnsConf, error) {
+func Read() DynDnsConf {
 	// Mandatory flags
 	var zoneName, apiToken, recordType string
 	flag.StringVar(&zoneName, EnvZoneName, zoneName, DescZoneName)
@@ -69,6 +83,12 @@ func Read() (DynDnsConf, error) {
 	// Parse flags
 	flag.Parse()
 
+	// Computed confs
+	var ipVersion = IPv4
+	if recordType == IPv6RecordType {
+		ipVersion = IPv6
+	}
+
 	dynDnsConf := DynDnsConf{
 		DnsConf: DnsConf{ApiToken: apiToken, ZoneName: zoneName},
 		RecordConf: RecordConf{
@@ -76,10 +96,23 @@ func Read() (DynDnsConf, error) {
 			RecordName: recordName,
 			TTL:        ttl,
 		},
+		ProviderConf: ProviderConf{
+			IpVersion: ipVersion,
+		},
 		CronConf: CronConf{CronExpression: cronExpression},
 	}
 
-	return validate(dynDnsConf)
+	validatedConf, err := validate(dynDnsConf)
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+
+	return validatedConf
+}
+
+func PrintUsage() {
+	flag.Usage()
 }
 
 func validate(dynDnsConf DynDnsConf) (DynDnsConf, error) {

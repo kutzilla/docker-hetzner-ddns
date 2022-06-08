@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"matthias-kutz.com/hetzner-ddns/pkg/conf"
 	"matthias-kutz.com/hetzner-ddns/pkg/request"
 )
 
@@ -13,20 +14,29 @@ type ipify struct {
 }
 
 type Ipify struct {
+	IpVersion string
 }
 
 const (
 	HttpsScheme = "https"
 
-	IpifyHost                 = "api.ipify.org"
+	IpifyIpV4Host             = "api.ipify.org"
+	IpifyIpV6Host             = "api64.ipify.org"
 	IpifyFormatQueryParam     = "format"
 	IpifyQueryParamFormatJson = "json"
 )
 
+func (i Ipify) getHost() string {
+	if i.IpVersion == conf.IPv6 {
+		return IpifyIpV6Host
+	}
+	return IpifyIpV4Host
+}
+
 func (i Ipify) IsOnline() bool {
 	ipifyUrl := url.URL{
 		Scheme: HttpsScheme,
-		Host:   IpifyHost,
+		Host:   i.getHost(),
 	}
 
 	_, err := http.Get(ipifyUrl.String())
@@ -36,7 +46,7 @@ func (i Ipify) IsOnline() bool {
 func (i Ipify) Request() (IP, error) {
 	requestUrl := url.URL{
 		Scheme:   HttpsScheme,
-		Host:     IpifyHost,
+		Host:     i.getHost(),
 		RawQuery: IpifyFormatQueryParam + "=" + IpifyQueryParamFormatJson,
 	}
 
@@ -44,7 +54,7 @@ func (i Ipify) Request() (IP, error) {
 		map[string]string{}, []byte{})
 
 	if err != nil {
-		return IP{}, &ProviderNotAvailableError{ProviderName: IpifyHost}
+		return IP{}, &ProviderNotAvailableError{ProviderName: i.getHost()}
 	}
 
 	var ipify ipify
@@ -52,7 +62,7 @@ func (i Ipify) Request() (IP, error) {
 
 	ip := IP{
 		Value:  ipify.IP,
-		Source: IpifyHost,
+		Source: i.getHost(),
 	}
 
 	return ip, nil
