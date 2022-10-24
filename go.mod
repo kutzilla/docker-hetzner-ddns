@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/namsral/flag v1.7.4-pre
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.1
 )
 
 require (
