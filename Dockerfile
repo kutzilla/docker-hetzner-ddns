@@ -5,7 +5,7 @@ COPY go.sum .
 RUN go mod download
 COPY pkg ./pkg
 COPY cmd ./cmd
-RUN go build -o hetzner-ddns ./cmd/hetzner-ddns
+RUN CGO_ENABLED=0 go build -o hetzner-ddns ./cmd/hetzner-ddns
 
 FROM scratch
 WORKDIR /
