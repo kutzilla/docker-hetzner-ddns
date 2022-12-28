@@ -5,9 +5,9 @@ COPY go.sum .
 RUN go mod download
 COPY pkg ./pkg
 COPY cmd ./cmd
-RUN CGO_ENABLED=0 go build -o hetzner-ddns ./cmd/hetzner-ddns
+RUN go build -o hetzner-ddns ./cmd/hetzner-ddns
 
-FROM scratch
+FROM alpine
 WORKDIR /
 COPY --from=build /app/hetzner-ddns /hetzner-ddns
 ENTRYPOINT ["/hetzner-ddns"]
