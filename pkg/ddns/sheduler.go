@@ -25,6 +25,10 @@ func (scheduler Scheduler) Start() {
 	c.Start()
 
 	fmt.Println("Started DynDNS")
+
+	// Do the first run instantly instead of waiting for cron
+	scheduler.Service.Run()
+
 	wait()
 	fmt.Println("Stopped DynDNS")
 	c.Stop()
