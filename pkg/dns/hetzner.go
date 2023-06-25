@@ -203,5 +203,6 @@ func (h Hetzner) UpdateZoneRecord(zone Zone, record Record) (Record, error) {
 		Id:     hetznerUpdateResponse.Record.Id,
 		Type:   hetznerUpdateResponse.Record.Type,
 		ZoneId: hetznerUpdateResponse.Record.ZoneId,
+		Value:  hetznerUpdateResponse.Record.Value,
 	}, nil
 }

@@ -1,4 +1,4 @@
-[![Build Status](https://github.com/kutzilla/docker-hetzner-ddns/actions/workflows/go.yml/badge.svg)](https://github.com/kutzilla/docker-hetzner-ddns/actions/workflows/go.yml) [![Docker Pulls](https://img.shields.io/docker/pulls/kutzilla/hetzner-ddns.svg)](https://hub.docker.com/r/kutzilla/hetzner-ddns)
+[![Build Status](https://github.com/kutzilla/docker-hetzner-ddns/actions/workflows/build.yml/badge.svg)](https://github.com/kutzilla/docker-hetzner-ddns/actions/workflows/go.yml) [![Docker Pulls](https://img.shields.io/docker/pulls/kutzilla/hetzner-ddns.svg)](https://hub.docker.com/r/kutzilla/hetzner-ddns)
 
 # Docker Hetzner DDNS
 
