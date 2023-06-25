@@ -1,0 +1,31 @@
+{
+    "zoneName" : "example.com",
+    "apiToken" : "my-secret-api-token",
+    
+    "records" : [
+        {
+            "recordName" : "domain1",
+            "recordType" : "A"
+        },
+        {
+            "recordName" : "domain2",
+            "recordType" : "AAAA"
+        },
+        {
+            "recordName" : "domain3", 
+            "recordType" : "A",
+            "ttl" : 40000
+        },
+        {
+            "recordName" : "domain4", 
+            "recordType" : "A",
+            "cronExpression" : "*/5 * * * *"
+        },
+        {
+            "recordName" : "domain5", 
+            "recordType" : "AAAA",
+            "ttl" : 40000,
+            "cronExpression" : "*/5 * * * *"
+        }
+    ]
+}

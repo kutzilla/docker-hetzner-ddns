@@ -14,6 +14,7 @@ const (
 	EnvRecordName     = "RECORD_NAME"
 	EnvCronExpression = "CRON_EXPRESSION"
 	EnvTimeToLive     = "TTL"
+	EnvConfFilePath   = "CONF_FILE_PATH"
 
 	DescZoneName       = "The DNS zone that DDNS updates should be applied to."
 	DescApiToken       = "Your Hetzner API token."
@@ -21,6 +22,7 @@ const (
 	DescRecordName     = "The name of the DNS-record that DDNS updates should be applied to. This could be `sub` if you like to update the subdomain `sub.example.com` of `example.com`. The default value is `@`"
 	DescCronExpression = "The cron expression of the DDNS update interval. The default is every 5 minutes - `*/5 * * * *`"
 	DescTimeToLive     = "Time to live of the recourd"
+	DescConfFilePath   = "The path to the configuration file"
 
 	DefaultRecordName     = "@"
 	DefaultCronExpression = "*/5 * * * *"
@@ -83,12 +85,6 @@ func Read() DynDnsConf {
 	// Parse flags
 	flag.Parse()
 
-	// Computed confs
-	var ipVersion = IPv4
-	if recordType == IPv6RecordType {
-		ipVersion = IPv6
-	}
-
 	dynDnsConf := DynDnsConf{
 		DnsConf: DnsConf{ApiToken: apiToken, ZoneName: zoneName},
 		RecordConf: RecordConf{
@@ -97,7 +93,7 @@ func Read() DynDnsConf {
 			TTL:        ttl,
 		},
 		ProviderConf: ProviderConf{
-			IpVersion: ipVersion,
+			IpVersion: DetermineIpVersion(recordType),
 		},
 		CronConf: CronConf{CronExpression: cronExpression},
 	}
@@ -109,6 +105,13 @@ func Read() DynDnsConf {
 	}
 
 	return validatedConf
+}
+
+func DetermineIpVersion(recordType string) string {
+	if recordType == IPv6RecordType {
+		return IPv6
+	}
+	return IPv4
 }
 
 func PrintUsage() {
