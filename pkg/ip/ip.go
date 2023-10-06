@@ -1,8 +1,15 @@
 package ip
 
+type IpVersion string
+
+const (
+	IpV4 IpVersion = "IpV4"
+	IpV6 IpVersion = "IpV6"
+)
+
 type Provider interface {
-	Request() (IP, error)
-	IsOnline() bool
+	Request(IpVersion) (IP, error)
+	IsOnline(IpVersion) bool
 }
 
 type IP struct {

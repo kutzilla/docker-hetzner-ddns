@@ -14,7 +14,6 @@ type ipify struct {
 }
 
 type Ipify struct {
-	IpVersion string
 }
 
 const (
@@ -26,27 +25,27 @@ const (
 	IpifyQueryParamFormatJson = "json"
 )
 
-func (i Ipify) getHost() string {
-	if i.IpVersion == conf.IPv6 {
+func (i Ipify) determineHostByIpVersion(ipVersion IpVersion) string {
+	if ipVersion == conf.IPv6 {
 		return IpifyIpV6Host
 	}
 	return IpifyIpV4Host
 }
 
-func (i Ipify) IsOnline() bool {
+func (i Ipify) IsOnline(ipVersion IpVersion) bool {
 	ipifyUrl := url.URL{
 		Scheme: HttpsScheme,
-		Host:   i.getHost(),
+		Host:   i.determineHostByIpVersion(ipVersion),
 	}
 
 	_, err := http.Get(ipifyUrl.String())
 	return err == nil
 }
 
-func (i Ipify) Request() (IP, error) {
+func (i Ipify) Request(ipVersion IpVersion) (IP, error) {
 	requestUrl := url.URL{
 		Scheme:   HttpsScheme,
-		Host:     i.getHost(),
+		Host:     i.determineHostByIpVersion(ipVersion),
 		RawQuery: IpifyFormatQueryParam + "=" + IpifyQueryParamFormatJson,
 	}
 
@@ -54,7 +53,7 @@ func (i Ipify) Request() (IP, error) {
 		map[string]string{}, []byte{})
 
 	if err != nil {
-		return IP{}, &ProviderNotAvailableError{ProviderName: i.getHost()}
+		return IP{}, &ProviderNotAvailableError{ProviderName: i.determineHostByIpVersion(ipVersion)}
 	}
 
 	var ipify ipify
@@ -62,7 +61,7 @@ func (i Ipify) Request() (IP, error) {
 
 	ip := IP{
 		Value:  ipify.IP,
-		Source: i.getHost(),
+		Source: i.determineHostByIpVersion(ipVersion),
 	}
 
 	return ip, nil
