@@ -80,7 +80,7 @@ func setupRecordConfig(records RecordConfig) {
 			useDefaultConfig = false
 			envKey := strings.Split(envRecord, "=")[0]
 
-			if strings.HasSuffix(envKey, "_TYPE") || strings.HasSuffix(envKey, "_TTL") {
+			if strings.HasSuffix(envKey, "_TTL") {
 				continue
 			}
 
