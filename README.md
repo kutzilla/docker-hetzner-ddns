@@ -43,10 +43,11 @@ docker run kutzilla/hetzner-ddns example.com my-secret-api-token A
 
 ## Optional Parameters
 
-* `-e RECORD_NAME` - The name of the DNS-record that DDNS updates should be applied to. This could be `sub` if you like to update the subdomain `sub.example.com` of `example.com`. The default value is `@` If you want to update multiple Records you can use a pattern. The pattern which can be used is `RECORD_NAME_<NAME>` e.g. `RECORD_NAME_EXAMPLE`, `RECORD_NAME` will be ignored the multi domain approach is used.
+* `-e RECORD_NAME` - The name of the DNS-record that DDNS updates should be applied to. This could be `sub` if you like to update the subdomain `sub.example.com` of `example.com`. The default value is `@` If you want to update multiple Records you can use a pattern. This functionality only works if the `MULTIPLE_DOMAIN_MODE` is set to `true`.
 * `-e CRON_EXPRESSION` - The cron expression of the DDNS update interval. The default is every 5 minutes - `*/5 * * * *`.
 * `-e TTL` - The TTL (Time To Live) value specifies how long the record is valid before the nameservers are prompted to reload the zone file. The default is `86400`.
 * `-e RECORD_NAME_<NAME>_TTL` - In case you have multiple records, you can specify the TTL per record referenced by `<NAME>` for example `RECORD_NAME_EXAMPLE_TTL`, if no TTL is specified the TTL will be `86400`. The `TTL` argument will be ignored if this parameter is used.
+* `-e MULTIPLE_DOMAIN_MODE` - Sets the mode to update a single record or multiple records at once.
 
 
 ## Build

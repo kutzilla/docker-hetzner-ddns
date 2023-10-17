@@ -10,36 +10,42 @@ import (
 )
 
 const (
-	EnvZoneName       = "ZONE_NAME"
-	EnvApiToken       = "API_TOKEN"
-	EnvRecordType     = "RECORD_TYPE"
-	EnvRecordName     = "RECORD_NAME"
-	EnvCronExpression = "CRON_EXPRESSION"
-	EnvTimeToLive     = "TTL"
+	EnvZoneName           = "ZONE_NAME"
+	EnvApiToken           = "API_TOKEN"
+	EnvRecordType         = "RECORD_TYPE"
+	EnvRecordName         = "RECORD_NAME"
+	EnvCronExpression     = "CRON_EXPRESSION"
+	EnvTimeToLive         = "TTL"
+	EnvMultipleDomainMode = "MULTIPLE_DOMAIN_MODE"
 
-	DescZoneName       = "The DNS zone that DDNS updates should be applied to."
-	DescApiToken       = "Your Hetzner API token."
-	DescRecordType     = "The record type of your zone. If your zone uses an IPv4 address use `A`. Use `AAAA` if it uses an IPv6 address."
-	DescRecordName     = "The name of the DNS-record that DDNS updates should be applied to. This could be `sub` if you like to update the subdomain `sub.example.com` of `example.com`. The default value is `@`"
-	DescCronExpression = "The cron expression of the DDNS update interval. The default is every 5 minutes - `*/5 * * * *`"
-	DescTimeToLive     = "Time to live of the record"
+	DescZoneName           = "The DNS zone that DDNS updates should be applied to."
+	DescApiToken           = "Your Hetzner API token."
+	DescRecordType         = "The record type of your zone. If your zone uses an IPv4 address use `A`. Use `AAAA` if it uses an IPv6 address."
+	DescRecordName         = "The name of the DNS-record that DDNS updates should be applied to. This could be `sub` if you like to update the subdomain `sub.example.com` of `example.com`. The default value is `@`"
+	DescCronExpression     = "The cron expression of the DDNS update interval. The default is every 5 minutes - `*/5 * * * *`"
+	DescTimeToLive         = "Time to live of the record"
+	DescMultipleDomainMode = "Sets the mode to update a single record or multiple records at once"
 
-	DefaultRecordKey      = "default"
-	DefaultRecordName     = "@"
-	DefaultRecordType     = "A"
-	DefaultCronExpression = "*/5 * * * *"
-	DefaultTimeToLive     = 86400
+	DefaultRecordKey          = "default"
+	DefaultRecordName         = "@"
+	DefaultRecordType         = "A"
+	DefaultCronExpression     = "*/5 * * * *"
+	DefaultTimeToLive         = 86400
+	DefaultMultipleDomainMode = false
 
 	IPv4           = "IPv4"
 	IPv6           = "IPv6"
 	IPv6RecordType = "AAAA"
 )
 
-type RecordConfig map[string]*RecordConf
+type RecordConfig struct {
+	mode    bool
+	records map[string]*RecordConf
+}
 
 type DynDnsConf struct {
 	DnsConf      DnsConf
-	RecordConf   map[string]*RecordConf
+	RecordConf   RecordConfig
 	ProviderConf ProviderConf
 	CronConf     CronConf
 }
@@ -71,45 +77,46 @@ func (e *ArgumentMissingError) Error() string {
 	return "The mandatory argument " + e.argumentName + " is missing"
 }
 
-func setupRecordConfig(records RecordConfig) {
-	useDefaultConfig := true
-	envPrefix := fmt.Sprintf("%s_", EnvRecordName)
+func setupRecordConfig(recordConf RecordConfig) {
+	flag.BoolVar(&recordConf.mode, EnvMultipleDomainMode, DefaultMultipleDomainMode, DescMultipleDomainMode)
 
-	for _, envRecord := range os.Environ() {
-		if strings.HasPrefix(envRecord, envPrefix) {
-			useDefaultConfig = false
-			envKey := strings.Split(envRecord, "=")[0]
+	if recordConf.mode {
+		envPrefix := fmt.Sprintf("%s_", EnvRecordName)
+		for _, envRecord := range os.Environ() {
+			if strings.HasPrefix(envRecord, envPrefix) {
+				envKey := strings.Split(envRecord, "=")[0]
 
-			if strings.HasSuffix(envKey, "_TTL") {
-				continue
+				if strings.HasSuffix(envKey, "_TTL") {
+					continue
+				}
+
+				if _, exists := recordConf.records[envKey]; exists {
+					continue
+				}
+
+				var record = &RecordConf{
+					RecordType: DefaultRecordType, // assume its ipv4, fix later after arg parse if not
+				}
+				recordConf.records[envKey] = record
+
+				flag.StringVar(&record.RecordName, envKey, DefaultRecordName, DescRecordName)
+				flag.IntVar(&record.TTL, fmt.Sprintf("%s_TTL", envKey), DefaultTimeToLive, DescTimeToLive)
 			}
-
-			if _, exists := records[envKey]; exists {
-				continue
-			}
-
-			var record = &RecordConf{
-				RecordType: DefaultRecordType, // assume its ipv4, fix later after arg parse if not
-			}
-			records[envKey] = record
-
-			flag.StringVar(&record.RecordName, envKey, DefaultRecordName, DescRecordName)
-			flag.IntVar(&record.TTL, fmt.Sprintf("%s_TTL", envKey), DefaultTimeToLive, DescTimeToLive)
 		}
 	}
 
-	if useDefaultConfig {
+	if !recordConf.mode {
 		var record = &RecordConf{
 			RecordType: DefaultRecordType,
 		}
 		flag.StringVar(&record.RecordName, EnvRecordName, DefaultRecordName, DescRecordName)
 		flag.IntVar(&record.TTL, EnvTimeToLive, DefaultTimeToLive, DescTimeToLive)
-		records[DefaultRecordKey] = record
+		recordConf.records[DefaultRecordKey] = record
 	}
 }
 
-func setRecordType(records RecordConfig, recordType string) {
-	for _, record := range records {
+func setRecordType(recordConf RecordConfig, recordType string) {
+	for _, record := range recordConf.records {
 		record.RecordType = recordType
 	}
 }
@@ -121,7 +128,10 @@ func Read() DynDnsConf {
 	flag.StringVar(&apiToken, EnvApiToken, apiToken, DescApiToken)
 	flag.StringVar(&recordType, EnvRecordType, recordType, DescRecordType)
 
-	records := make(map[string]*RecordConf)
+	records := RecordConfig{
+		mode:    DefaultMultipleDomainMode,
+		records: make(map[string]*RecordConf),
+	}
 	setupRecordConfig(records)
 
 	var cronExpression = DefaultCronExpression
@@ -175,7 +185,7 @@ func validate(dynDnsConf DynDnsConf) (DynDnsConf, error) {
 	}
 
 	// Check record type
-	for _, record := range dynDnsConf.RecordConf {
+	for _, record := range dynDnsConf.RecordConf.records {
 		if record.RecordType == "" {
 			return dynDnsConf, &ArgumentMissingError{
 				argumentName: EnvRecordType,
