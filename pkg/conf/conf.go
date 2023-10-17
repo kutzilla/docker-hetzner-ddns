@@ -2,7 +2,9 @@ package conf
 
 import (
 	"fmt"
+	"log"
 	"os"
+	"strings"
 
 	"github.com/namsral/flag"
 )
@@ -20,9 +22,11 @@ const (
 	DescRecordType     = "The record type of your zone. If your zone uses an IPv4 address use `A`. Use `AAAA` if it uses an IPv6 address."
 	DescRecordName     = "The name of the DNS-record that DDNS updates should be applied to. This could be `sub` if you like to update the subdomain `sub.example.com` of `example.com`. The default value is `@`"
 	DescCronExpression = "The cron expression of the DDNS update interval. The default is every 5 minutes - `*/5 * * * *`"
-	DescTimeToLive     = "Time to live of the recourd"
+	DescTimeToLive     = "Time to live of the record"
 
+	DefaultRecordKey      = "default"
 	DefaultRecordName     = "@"
+	DefaultRecordType     = "A"
 	DefaultCronExpression = "*/5 * * * *"
 	DefaultTimeToLive     = 86400
 
@@ -31,9 +35,11 @@ const (
 	IPv6RecordType = "AAAA"
 )
 
+type RecordConfig map[string]*RecordConf
+
 type DynDnsConf struct {
 	DnsConf      DnsConf
-	RecordConf   RecordConf
+	RecordConf   map[string]*RecordConf
 	ProviderConf ProviderConf
 	CronConf     CronConf
 }
@@ -65,6 +71,49 @@ func (e *ArgumentMissingError) Error() string {
 	return "The mandatory argument " + e.argumentName + " is missing"
 }
 
+func setupRecordConfig(records RecordConfig) {
+	useDefaultConfig := true
+	envPrefix := fmt.Sprintf("%s_", EnvRecordName)
+
+	for _, envRecord := range os.Environ() {
+		if strings.HasPrefix(envRecord, envPrefix) {
+			useDefaultConfig = false
+			envKey := strings.Split(envRecord, "=")[0]
+
+			if strings.HasSuffix(envKey, "_TTL") {
+				continue
+			}
+
+			if _, exists := records[envKey]; exists {
+				continue
+			}
+
+			var record = &RecordConf{
+				RecordType: DefaultRecordType, // assume its ipv4, fix later after arg parse if not
+			}
+			records[envKey] = record
+
+			flag.StringVar(&record.RecordName, envKey, DefaultRecordName, DescRecordName)
+			flag.IntVar(&record.TTL, fmt.Sprintf("%s_TTL", envKey), DefaultTimeToLive, DescTimeToLive)
+		}
+	}
+
+	if useDefaultConfig {
+		var record = &RecordConf{
+			RecordType: DefaultRecordType,
+		}
+		flag.StringVar(&record.RecordName, EnvRecordName, DefaultRecordName, DescRecordName)
+		flag.IntVar(&record.TTL, EnvTimeToLive, DefaultTimeToLive, DescTimeToLive)
+		records[DefaultRecordKey] = record
+	}
+}
+
+func setRecordType(records RecordConfig, recordType string) {
+	for _, record := range records {
+		record.RecordType = recordType
+	}
+}
+
 func Read() DynDnsConf {
 	// Mandatory flags
 	var zoneName, apiToken, recordType string
@@ -72,13 +121,11 @@ func Read() DynDnsConf {
 	flag.StringVar(&apiToken, EnvApiToken, apiToken, DescApiToken)
 	flag.StringVar(&recordType, EnvRecordType, recordType, DescRecordType)
 
-	// Optional flags
-	var recordName = DefaultRecordName
-	flag.StringVar(&recordName, EnvRecordName, recordName, DescRecordName)
+	records := make(map[string]*RecordConf)
+	setupRecordConfig(records)
+
 	var cronExpression = DefaultCronExpression
 	flag.StringVar(&cronExpression, EnvCronExpression, cronExpression, DescCronExpression)
-	var ttl = DefaultTimeToLive
-	flag.IntVar(&ttl, EnvTimeToLive, ttl, DescTimeToLive)
 
 	// Parse flags
 	flag.Parse()
@@ -87,15 +134,12 @@ func Read() DynDnsConf {
 	var ipVersion = IPv4
 	if recordType == IPv6RecordType {
 		ipVersion = IPv6
+		setRecordType(records, recordType)
 	}
 
 	dynDnsConf := DynDnsConf{
-		DnsConf: DnsConf{ApiToken: apiToken, ZoneName: zoneName},
-		RecordConf: RecordConf{
-			RecordType: recordType,
-			RecordName: recordName,
-			TTL:        ttl,
-		},
+		DnsConf:    DnsConf{ApiToken: apiToken, ZoneName: zoneName},
+		RecordConf: records,
 		ProviderConf: ProviderConf{
 			IpVersion: ipVersion,
 		},
@@ -104,7 +148,7 @@ func Read() DynDnsConf {
 
 	validatedConf, err := validate(dynDnsConf)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		os.Exit(1)
 	}
 
@@ -131,9 +175,11 @@ func validate(dynDnsConf DynDnsConf) (DynDnsConf, error) {
 	}
 
 	// Check record type
-	if dynDnsConf.RecordConf.RecordType == "" {
-		return dynDnsConf, &ArgumentMissingError{
-			argumentName: EnvRecordType,
+	for _, record := range dynDnsConf.RecordConf {
+		if record.RecordType == "" {
+			return dynDnsConf, &ArgumentMissingError{
+				argumentName: EnvRecordType,
+			}
 		}
 	}
 

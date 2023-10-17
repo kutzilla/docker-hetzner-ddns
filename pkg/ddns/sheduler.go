@@ -1,7 +1,7 @@
 package ddns
 
 import (
-	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"sync"
@@ -24,13 +24,13 @@ func (scheduler Scheduler) Start() {
 	c.AddJob(scheduler.CronExpression, job)
 	c.Start()
 
-	fmt.Println("Started DynDNS")
+	log.Println("Started DynDNS")
 
 	// Do the first run instantly instead of waiting for cron
 	scheduler.Service.Run()
 
 	wait()
-	fmt.Println("Stopped DynDNS")
+	log.Println("Stopped DynDNS")
 	c.Stop()
 }
 
