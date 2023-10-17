@@ -1,7 +1,6 @@
 package ddns
 
 import (
-	"fmt"
 	"log"
 	"matthias-kutz.com/hetzner-ddns/pkg/conf"
 
@@ -90,7 +89,7 @@ func (service Service) Run() {
 		// Update the record at the dns provider
 		updateRecord, err = service.DnsProvider.UpdateZoneRecord(zone, updateRecord)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			continue
 		}
 		log.Printf("updated %s.%s [%s]\n", dnsRecord.RecordName, service.Parameter.ZoneName, updateRecord.Value)

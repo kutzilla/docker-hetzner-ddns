@@ -2,6 +2,7 @@ package conf
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -147,7 +148,7 @@ func Read() DynDnsConf {
 
 	validatedConf, err := validate(dynDnsConf)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		os.Exit(1)
 	}
 
