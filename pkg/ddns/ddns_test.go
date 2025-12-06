@@ -46,9 +46,14 @@ func TestRun(t *testing.T) {
 		IpProvider:  ipProvider,
 		DnsProvider: dnsProvider,
 		Parameter: Parameter{
-			ZoneName:   "example.com",
-			RecordName: "@",
-			RecordType: "A",
+			ZoneName: "example.com",
+			Records: []Record{
+				{
+					RecordName: "@",
+					RecordType: "A",
+					TTL:        86400,
+				},
+			},
 		},
 	}
 

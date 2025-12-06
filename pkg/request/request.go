@@ -2,8 +2,8 @@ package request
 
 import (
 	"bytes"
-	"fmt"
-	"io/ioutil"
+	"io"
+	"log"
 	"net/http"
 	"net/url"
 )
@@ -16,7 +16,7 @@ func Request(httpMethod string, url url.URL, headers map[string]string, body []b
 	req, err := http.NewRequest(httpMethod, url.String(), bytes.NewBuffer(body))
 
 	if err != nil {
-		fmt.Println("Failure : ", err)
+		log.Println("Failure : ", err)
 		return []byte{}, err
 	}
 
@@ -29,12 +29,12 @@ func Request(httpMethod string, url url.URL, headers map[string]string, body []b
 	resp, err := client.Do(req)
 
 	if err != nil {
-		fmt.Println("Failure : ", err)
+		log.Println("Failure : ", err)
 		return []byte{}, err
 	}
 
 	// Read Response Body
-	respBody, _ := ioutil.ReadAll(resp.Body)
+	respBody, _ := io.ReadAll(resp.Body)
 
 	return respBody, nil
 }

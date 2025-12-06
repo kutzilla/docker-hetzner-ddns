@@ -19,10 +19,8 @@ func main() {
 	}
 
 	ddnsParameter := ddns.Parameter{
-		ZoneName:   dynDnsConf.DnsConf.ZoneName,
-		RecordName: dynDnsConf.RecordConf.RecordName,
-		RecordType: dynDnsConf.RecordConf.RecordType,
-		TTL:        dynDnsConf.RecordConf.TTL,
+		ZoneName: dynDnsConf.DnsConf.ZoneName,
+		Records:  ddns.ConvertFromConfig(dynDnsConf.RecordConf),
 	}
 
 	ddnsService := ddns.Service{
