@@ -10,7 +10,7 @@ import (
 
 const (
 	HttpsScheme                      = "https"
-	HetznerHost                      = "https://api.hetzner.cloud/"
+	HetznerHost                      = "api.hetzner.cloud"
 	HetznerZonesPath                 = "v1/zones"
 	HetznerRecordsPath               = "v1/records"
 	HetznerRecordsZoneNameQueryParam = "name"
