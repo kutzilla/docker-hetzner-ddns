@@ -2,10 +2,10 @@ package ddns
 
 import (
 	"log"
-	"matthias-kutz.com/hetzner-ddns/pkg/conf"
+	"github.com/kutzilla/hetzner-cloud-ddns/pkg/conf"
 
-	"matthias-kutz.com/hetzner-ddns/pkg/dns"
-	"matthias-kutz.com/hetzner-ddns/pkg/ip"
+	"github.com/kutzilla/hetzner-cloud-ddns/pkg/dns"
+	"github.com/kutzilla/hetzner-cloud-ddns/pkg/ip"
 )
 
 type Service struct {

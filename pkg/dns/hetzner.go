@@ -5,17 +5,17 @@ import (
 	"net/http"
 	"net/url"
 
-	"matthias-kutz.com/hetzner-ddns/pkg/request"
+	"github.com/kutzilla/hetzner-cloud-ddns/pkg/request"
 )
 
 const (
-	HttpsScheme                  = "https"
-	HetznerHost                  = "dns.hetzner.com"
-	HetznerZonesPath             = "api/v1/zones"
-	HetznerRecordsPath           = "api/v1/records"
-	HetznerRecordsZoneQueryParam = "zone_id"
-	HetznerAuthApiTokenHeader    = "Auth-API-Token"
-	HetznerContentTypeHeader     = "Content-Type"
+	HttpsScheme                      = "https"
+	HetznerHost                      = "https://api.hetzner.cloud/"
+	HetznerZonesPath                 = "v1/zones"
+	HetznerRecordsPath               = "v1/records"
+	HetznerRecordsZoneNameQueryParam = "name"
+	HetznerAuthApiTokenHeader        = "Auth-API-Token"
+	HetznerContentTypeHeader         = "Content-Type"
 
 	DefaultRecordName = "@"
 
@@ -126,7 +126,7 @@ func (h Hetzner) RequestRecord(zone Zone, recordName string, recordType string) 
 		Scheme:   HttpsScheme,
 		Host:     HetznerHost,
 		Path:     HetznerRecordsPath,
-		RawQuery: HetznerRecordsZoneQueryParam + "=" + zone.Id,
+		RawQuery: HetznerRecordsZoneNameQueryParam + "=" + zone.Name,
 	}
 
 	// Request api

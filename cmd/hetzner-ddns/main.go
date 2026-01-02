@@ -1,10 +1,10 @@
 package main
 
 import (
-	"matthias-kutz.com/hetzner-ddns/pkg/conf"
-	"matthias-kutz.com/hetzner-ddns/pkg/ddns"
-	"matthias-kutz.com/hetzner-ddns/pkg/dns"
-	"matthias-kutz.com/hetzner-ddns/pkg/ip"
+	"github.com/kutzilla/hetzner-cloud-ddns/pkg/conf"
+	"github.com/kutzilla/hetzner-cloud-ddns/pkg/ddns"
+	"github.com/kutzilla/hetzner-cloud-ddns/pkg/dns"
+	"github.com/kutzilla/hetzner-cloud-ddns/pkg/ip"
 )
 
 func main() {

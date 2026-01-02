@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"matthias-kutz.com/hetzner-ddns/pkg/conf"
-	"matthias-kutz.com/hetzner-ddns/pkg/request"
+	"github.com/kutzilla/hetzner-cloud-ddns/pkg/conf"
+	"github.com/kutzilla/hetzner-cloud-ddns/pkg/request"
 )
 
 type ipify struct {

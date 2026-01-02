@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"matthias-kutz.com/hetzner-ddns/pkg/conf"
+	"github.com/kutzilla/hetzner-cloud-ddns/pkg/conf"
 )
 
 func TestIsOnline(t *testing.T) {

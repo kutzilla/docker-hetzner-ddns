@@ -1,6 +1,6 @@
-module matthias-kutz.com/hetzner-ddns
+module github.com/kutzilla/hetzner-cloud-ddns
 
-go 1.17
+go 1.25.5
 
 require (
 	github.com/namsral/flag v1.7.4-pre

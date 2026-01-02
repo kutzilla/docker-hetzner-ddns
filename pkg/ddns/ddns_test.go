@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"matthias-kutz.com/hetzner-ddns/pkg/dns"
-	"matthias-kutz.com/hetzner-ddns/pkg/ip"
+	"github.com/kutzilla/hetzner-cloud-ddns/pkg/dns"
+	"github.com/kutzilla/hetzner-cloud-ddns/pkg/ip"
 )
 
 type MockIpProvider struct {
